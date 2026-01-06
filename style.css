@@ -21,6 +21,9 @@
     --color-completed: #10B981;
     --color-completed-bg: #ECFDF5;
 
+    --color-low: #94A3B8;
+    --color-low-bg: #F1F5F9;
+
     --color-trash: #64748B;
     --color-trash-bg: #F1F5F9;
 
@@ -56,6 +59,9 @@
 
     --color-trash: #94A3B8;
     --color-trash-bg: rgba(148, 163, 184, 0.1);
+
+    --color-low: #64748B;
+    --color-low-bg: rgba(148, 163, 184, 0.1);
 
     --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.3);
     --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.4);
@@ -314,10 +320,25 @@ header h1 {
     color: #fff;
 }
 
+.filter-btn.btn-trash {
+    margin-left: auto;
+    background: transparent;
+    border-color: transparent;
+    opacity: 0.7;
+}
+
+.filter-btn.btn-trash:hover {
+    background: var(--bg-card);
+    border-color: var(--border);
+    opacity: 1;
+}
+
 .filter-btn.btn-trash.active {
-    background: var(--color-trash);
-    border-color: var(--color-trash);
-    color: #fff;
+    background: var(--text-main);
+    /* Dark/Black for contrast or specific trash color */
+    border-color: var(--text-main);
+    color: var(--bg-body);
+    opacity: 1;
 }
 
 
@@ -412,6 +433,7 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     border-color: var(--primary-light);
 }
 
+/* Existing statuses above */
 .task-card.status-pending {
     border-left-color: var(--color-pending);
 }
@@ -420,6 +442,11 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     border-left-color: var(--color-urgent);
 }
 
+.task-card.status-low {
+    border-left-color: var(--color-low);
+}
+
+/* New Low Priority */
 .task-card.status-completed {
     border-left-color: var(--color-completed);
     opacity: 0.75;
@@ -446,10 +473,12 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
 .card-desc {
     font-size: 0.9rem;
     color: var(--text-muted);
-    /* Plain text preview or HTML rendered but stripped? */
-    /* Since we have HTML now, we treat this container as preview */
-    overflow: hidden;
+    overflow: hidden !important;
+    /* Override ql-editor scroll */
     text-overflow: ellipsis;
+    height: auto !important;
+    /* Allow it to fit content/container */
+    display: block;
 }
 
 .card-desc p {
@@ -504,6 +533,20 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     margin-top: auto;
     z-index: 2;
     position: relative;
+    min-height: 45px;
+    /* Standardize footer height */
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 60px;
+    display: none;
+    grid-column: 1 / -1;
+}
+
+.empty-state.visible {
+    display: block;
 }
 
 /* MODAL Styles */
@@ -598,10 +641,12 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
 }
 
 /* Quill Overrides for minimal look */
+/* Quill Overrides for minimal look */
 .ql-toolbar.ql-snow {
     border: none !important;
     border-bottom: 1px solid var(--border) !important;
     padding: 12px 24px !important;
+    flex-shrink: 0;
 }
 
 .ql-container.ql-snow {
@@ -610,10 +655,17 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     font-family: 'Outfit', sans-serif !important;
     font-size: 1rem !important;
     color: var(--text-main);
+    overflow: hidden;
+    /* Prevent container growing */
+    min-height: 0;
+    /* Allow flex shrinking/scrolling */
+    position: relative;
 }
 
 .ql-editor {
     padding: 24px !important;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .modal-meta-controls {
@@ -623,6 +675,9 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 16px;
+    flex-shrink: 0;
+    /* Prevent shrinking/moving */
+    z-index: 5;
 }
 
 .control-group {

@@ -24,6 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalSaveBtn = document.getElementById('modalSaveBtn');
     const modalDeleteBtn = document.getElementById('modalDeleteBtn');
 
+    // Export / Import Elements
+    const importBtn = document.getElementById('importBtn');
+    const importInput = document.getElementById('importInput');
+    const exportBtnTrigger = document.getElementById('exportBtnTrigger');
+    const exportMenu = document.getElementById('exportMenu');
+    const exportOpts = document.querySelectorAll('.export-opt');
+
     // --- Editor Init ---
     // Initialize Quill
     const quill = new Quill('#editor-container', {
@@ -56,6 +63,96 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
 
     // --- Interaction Listeners ---
+
+    // Import Logic
+    if (importBtn) {
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const content = ev.target.result;
+                const title = file.name.replace(/\.[^/.]+$/, ""); // remove extension
+
+                // Create Task
+                const newTask = {
+                    id: Date.now(),
+                    title: title,
+                    desc: content,
+                    richDesc: true, // Assume content is suitable or will be handled
+                    folderId: activeFolderId !== 'all' ? activeFolderId : null,
+                    priority: 'low',
+                    ticket: '',
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                // Handling HTML vs Text
+                if (file.name.endsWith('.html')) {
+                    newTask.desc = content;
+                } else {
+                    // Plain text to HTML paragraphs
+                    newTask.desc = content.split('\n').map(line => line.trim() ? `<p>${line}</p>` : '<p><br></p>').join('');
+                }
+
+                tasks.unshift(newTask);
+                saveTasks();
+                renderTasks();
+                alert('Nota importada com sucesso!');
+                importInput.value = '';
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    // Export Logic
+    if (exportBtnTrigger) {
+        exportBtnTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            exportMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!exportMenu.classList.contains('hidden') && !e.target.closest('.export-dropdown')) {
+                exportMenu.classList.add('hidden');
+            }
+        });
+
+        exportOpts.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const format = btn.dataset.format;
+                exportTask(format);
+                exportMenu.classList.add('hidden');
+            });
+        });
+    }
+
+    function exportTask(format) {
+        const title = modalTitleInput.value || 'tarefa';
+        let content = '';
+        let mime = 'text/plain';
+        let ext = 'txt';
+
+        if (format === 'html') {
+            content = quill.root.innerHTML;
+            mime = 'text/html';
+            ext = 'html';
+            content = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1>${content}</body></html>`;
+        } else {
+            content = quill.getText();
+            content = `Título: ${title}\n\n${content}`;
+        }
+
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${title}.${ext}`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
 
     // Sidebar & Navigation
     toggleSidebarBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -188,7 +285,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitleInput.value = '';
             quill.setText('');
             modalFolderSelect.value = activeFolderId !== 'all' ? activeFolderId : '';
-            modalPrioritySelect.value = 'normal';
+            modalPrioritySelect.value = 'low';
             modalTicketInput.value = '';
             modalDateInfo.textContent = 'Nova tarefa';
             modalDeleteBtn.classList.add('hidden');
@@ -319,8 +416,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Sort
         filtered.sort((a, b) => {
             if (activeStatusFilter === 'trash') return new Date(b.deletedAt) - new Date(a.deletedAt);
-            const wA = (a.completed ? 1 : (a.priority === 'urgente' ? 3 : 2));
-            const wB = (b.completed ? 1 : (b.priority === 'urgente' ? 3 : 2));
+            const getWeight = (t) => {
+                if (t.completed) return 1;
+                if (t.priority === 'urgente') return 4;
+                if (t.priority === 'normal') return 3;
+                return 2; // low
+            };
+            const wA = getWeight(a);
+            const wB = getWeight(b);
             return (wB - wA) || (b.id - a.id);
         });
 
@@ -337,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (activeStatusFilter === 'trash') statusClass = 'status-trash';
             else if (task.completed) statusClass = 'status-completed';
             else if (task.priority === 'urgente') statusClass = 'status-urgent';
+            else if (task.priority === 'low') statusClass = 'status-low';
 
             card.className = `task-card ${statusClass}`;
             card.onclick = () => window.openTask(task.id);
@@ -357,8 +461,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else {
                 const checkIcon = task.completed
-                    ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path></svg>'  // Check
-                    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>'; // Circle
+                    ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74-2.74L3 3"></path><path d="M3 3h6"></path><path d="M3 3v6"></path></svg>'  // Undo
+                    : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>'; // Check
 
                 actionHtml = `
                     <button class="action-btn" onclick="window.toggleComplete(event, ${task.id})">${checkIcon}</button>
