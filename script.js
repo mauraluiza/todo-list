@@ -32,17 +32,310 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportOpts = document.querySelectorAll('.export-opt');
 
     // --- Editor Init ---
-    // Initialize Quill
+    // Initialize Quill with image support
     const quill = new Quill('#editor-container', {
         theme: 'snow',
         modules: {
-            toolbar: [
-                ['bold', 'italic', 'strike'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }],
-                ['clean']
-            ]
+            toolbar: {
+                container: [
+                    ['bold', 'italic', 'strike'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }, { 'list': 'check' }],
+                    ['image'],
+                    ['clean']
+                ],
+                handlers: {
+                    image: imageHandler
+                }
+            }
         },
         placeholder: 'Descreva os detalhes da tarefa...'
+    });
+
+    // Custom image handler for Quill
+    function imageHandler() {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+
+        input.onchange = () => {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Validate file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Imagem muito grande! Máximo permitido: 5MB');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                const range = quill.getSelection(true);
+                quill.insertEmbed(range.index, 'image', base64);
+                quill.setSelection(range.index + 1);
+            };
+            reader.readAsDataURL(file);
+        };
+    }
+
+    // Image editing - resize handles and menu
+    let currentEditingImage = null;
+    let imageMenu = null;
+    let resizeWrapper = null;
+    let isResizing = false;
+    let startX, startY, startWidth, startHeight;
+    let currentHandle = null;
+
+    function createResizeWrapper() {
+        if (resizeWrapper) return resizeWrapper;
+
+        resizeWrapper = document.createElement('div');
+        resizeWrapper.className = 'image-resize-wrapper hidden';
+        resizeWrapper.innerHTML = `
+            <div class="resize-handle handle-nw" data-handle="nw"></div>
+            <div class="resize-handle handle-n" data-handle="n"></div>
+            <div class="resize-handle handle-ne" data-handle="ne"></div>
+            <div class="resize-handle handle-e" data-handle="e"></div>
+            <div class="resize-handle handle-se" data-handle="se"></div>
+            <div class="resize-handle handle-s" data-handle="s"></div>
+            <div class="resize-handle handle-sw" data-handle="sw"></div>
+            <div class="resize-handle handle-w" data-handle="w"></div>
+        `;
+        document.body.appendChild(resizeWrapper);
+
+        // Handle mouse events for resizing
+        resizeWrapper.querySelectorAll('.resize-handle').forEach(handle => {
+            handle.addEventListener('mousedown', startResize);
+        });
+
+        return resizeWrapper;
+    }
+
+    function startResize(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!currentEditingImage) return;
+
+        isResizing = true;
+        currentHandle = e.target.dataset.handle;
+        startX = e.clientX;
+        startY = e.clientY;
+        startWidth = currentEditingImage.offsetWidth;
+        startHeight = currentEditingImage.offsetHeight;
+
+        document.addEventListener('mousemove', doResize);
+        document.addEventListener('mouseup', stopResize);
+    }
+
+    function doResize(e) {
+        if (!isResizing || !currentEditingImage) return;
+
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        let newWidth = startWidth;
+        let newHeight = startHeight;
+        const aspectRatio = startWidth / startHeight;
+
+        switch (currentHandle) {
+            case 'e':
+                newWidth = Math.max(50, startWidth + deltaX);
+                break;
+            case 'w':
+                newWidth = Math.max(50, startWidth - deltaX);
+                break;
+            case 's':
+                newHeight = Math.max(50, startHeight + deltaY);
+                break;
+            case 'n':
+                newHeight = Math.max(50, startHeight - deltaY);
+                break;
+            case 'se':
+                newWidth = Math.max(50, startWidth + deltaX);
+                newHeight = newWidth / aspectRatio;
+                break;
+            case 'sw':
+                newWidth = Math.max(50, startWidth - deltaX);
+                newHeight = newWidth / aspectRatio;
+                break;
+            case 'ne':
+                newWidth = Math.max(50, startWidth + deltaX);
+                newHeight = newWidth / aspectRatio;
+                break;
+            case 'nw':
+                newWidth = Math.max(50, startWidth - deltaX);
+                newHeight = newWidth / aspectRatio;
+                break;
+        }
+
+        currentEditingImage.style.width = `${newWidth}px`;
+        currentEditingImage.style.height = `${newHeight}px`;
+
+        updateResizeWrapper();
+    }
+
+    function stopResize(e) {
+        isResizing = false;
+        currentHandle = null;
+        document.removeEventListener('mousemove', doResize);
+        document.removeEventListener('mouseup', stopResize);
+    }
+
+    function updateResizeWrapper() {
+        if (!resizeWrapper || !currentEditingImage) return;
+
+        const rect = currentEditingImage.getBoundingClientRect();
+        resizeWrapper.style.left = `${rect.left + window.scrollX}px`;
+        resizeWrapper.style.top = `${rect.top + window.scrollY}px`;
+        resizeWrapper.style.width = `${rect.width}px`;
+        resizeWrapper.style.height = `${rect.height}px`;
+    }
+
+    function createImageMenu() {
+        if (imageMenu) return imageMenu;
+
+        imageMenu = document.createElement('div');
+        imageMenu.className = 'image-edit-menu hidden';
+        imageMenu.innerHTML = `
+            <div class="image-menu-section">
+                <span class="menu-label">Alinhamento</span>
+                <div class="menu-options">
+                    <button data-align="left" title="Esquerda">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="15" y2="12"></line>
+                            <line x1="3" y1="18" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button data-align="center" title="Centro">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="6" y1="12" x2="18" y2="12"></line>
+                            <line x1="4" y1="18" x2="20" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button data-align="right" title="Direita">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="9" y1="12" x2="21" y2="12"></line>
+                            <line x1="6" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button class="delete-image-btn" data-action="delete" title="Remover imagem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Remover
+            </button>
+        `;
+
+        document.body.appendChild(imageMenu);
+
+        // Align buttons
+        imageMenu.querySelectorAll('[data-align]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!currentEditingImage) return;
+                const align = btn.dataset.align;
+                currentEditingImage.classList.remove('img-left', 'img-center', 'img-right');
+                currentEditingImage.classList.add(`img-${align}`);
+                updateActiveButtons();
+            });
+        });
+
+        // Delete button
+        imageMenu.querySelector('[data-action="delete"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!currentEditingImage) return;
+            currentEditingImage.remove();
+            hideImageMenu();
+        });
+
+        return imageMenu;
+    }
+
+    function updateActiveButtons() {
+        if (!currentEditingImage || !imageMenu) return;
+
+        // Update align buttons
+        imageMenu.querySelectorAll('[data-align]').forEach(btn => {
+            const align = btn.dataset.align;
+            btn.classList.toggle('active', currentEditingImage.classList.contains(`img-${align}`));
+        });
+    }
+
+    function showImageMenu(img, event) {
+        createImageMenu();
+        createResizeWrapper();
+        currentEditingImage = img;
+
+        // Show resize wrapper
+        resizeWrapper.classList.remove('hidden');
+        updateResizeWrapper();
+
+        // Position menu
+        const rect = img.getBoundingClientRect();
+        const menuWidth = 180;
+        const menuHeight = 100;
+
+        let left = rect.left + (rect.width / 2) - (menuWidth / 2);
+        let top = rect.top - menuHeight - 15;
+
+        // Keep menu in viewport
+        if (left < 10) left = 10;
+        if (left + menuWidth > window.innerWidth - 10) left = window.innerWidth - menuWidth - 10;
+        if (top < 10) top = rect.bottom + 15;
+
+        imageMenu.style.left = `${left}px`;
+        imageMenu.style.top = `${top}px`;
+        imageMenu.classList.remove('hidden');
+
+        updateActiveButtons();
+    }
+
+    function hideImageMenu() {
+        if (imageMenu) {
+            imageMenu.classList.add('hidden');
+        }
+        if (resizeWrapper) {
+            resizeWrapper.classList.add('hidden');
+        }
+        currentEditingImage = null;
+    }
+
+    // Listen for clicks on images in editor
+    quill.root.addEventListener('click', (e) => {
+        if (e.target.tagName === 'IMG') {
+            e.stopPropagation();
+            showImageMenu(e.target, e);
+        } else {
+            hideImageMenu();
+        }
+    });
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (imageMenu && !imageMenu.contains(e.target) && e.target.tagName !== 'IMG' &&
+            (!resizeWrapper || !resizeWrapper.contains(e.target))) {
+            hideImageMenu();
+        }
+    });
+
+    // Update wrapper position on scroll/resize
+    window.addEventListener('scroll', () => {
+        if (currentEditingImage && resizeWrapper && !resizeWrapper.classList.contains('hidden')) {
+            updateResizeWrapper();
+        }
+    });
+
+    modalOverlay.addEventListener('scroll', () => {
+        if (currentEditingImage && resizeWrapper && !resizeWrapper.classList.contains('hidden')) {
+            updateResizeWrapper();
+        }
     });
 
     // --- State ---

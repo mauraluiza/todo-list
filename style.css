@@ -758,3 +758,283 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
         border-radius: 0;
     }
 }
+
+/* Image Styles in Editor */
+.ql-editor img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 8px 0;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ql-editor img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Image Styles in Card Preview */
+.card-desc img {
+    max-width: 100%;
+    max-height: 80px;
+    height: auto;
+    border-radius: 6px;
+    margin: 4px 0;
+    object-fit: cover;
+}
+
+/* Quill Toolbar Image Button Styling */
+.ql-toolbar .ql-image {
+    color: var(--text-muted) !important;
+}
+
+.ql-toolbar .ql-image:hover {
+    color: var(--primary) !important;
+}
+
+.ql-snow .ql-stroke {
+    stroke: var(--text-muted);
+}
+
+.ql-snow .ql-fill {
+    fill: var(--text-muted);
+}
+
+.ql-snow.ql-toolbar button:hover .ql-stroke {
+    stroke: var(--primary);
+}
+
+.ql-snow.ql-toolbar button:hover .ql-fill {
+    fill: var(--primary);
+}
+
+.ql-snow.ql-toolbar button.ql-active .ql-stroke {
+    stroke: var(--primary);
+}
+
+.ql-snow.ql-toolbar button.ql-active .ql-fill {
+    fill: var(--primary);
+}
+
+/* Image Resize Wrapper */
+.image-resize-wrapper {
+    position: fixed;
+    z-index: 999;
+    pointer-events: none;
+    border: 2px solid var(--primary);
+    border-radius: 4px;
+}
+
+.image-resize-wrapper.hidden {
+    display: none;
+}
+
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border: 2px solid white;
+    border-radius: 2px;
+    pointer-events: all;
+    z-index: 1000;
+}
+
+.resize-handle:hover {
+    background: var(--primary-hover);
+    transform: scale(1.2);
+}
+
+/* Corner handles */
+.handle-nw {
+    top: -5px;
+    left: -5px;
+    cursor: nw-resize;
+}
+
+.handle-ne {
+    top: -5px;
+    right: -5px;
+    cursor: ne-resize;
+}
+
+.handle-se {
+    bottom: -5px;
+    right: -5px;
+    cursor: se-resize;
+}
+
+.handle-sw {
+    bottom: -5px;
+    left: -5px;
+    cursor: sw-resize;
+}
+
+/* Edge handles */
+.handle-n {
+    top: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: n-resize;
+}
+
+.handle-s {
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    cursor: s-resize;
+}
+
+.handle-e {
+    right: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: e-resize;
+}
+
+.handle-w {
+    left: -5px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: w-resize;
+}
+
+/* Image Alignment Classes */
+.ql-editor img.img-left {
+    display: block;
+    margin-left: 0;
+    margin-right: auto;
+}
+
+.ql-editor img.img-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.ql-editor img.img-right {
+    display: block;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+/* Image Edit Menu */
+.image-edit-menu {
+    position: fixed;
+    z-index: 1000;
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: var(--shadow-hover);
+    min-width: 180px;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.image-edit-menu.hidden {
+    display: none;
+}
+
+.image-menu-section {
+    margin-bottom: 12px;
+}
+
+.image-menu-section:last-of-type {
+    margin-bottom: 8px;
+}
+
+.menu-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.menu-options {
+    display: flex;
+    gap: 4px;
+}
+
+.menu-options button {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-options button:hover {
+    background: var(--primary-bg-subtle);
+    border-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.menu-options button.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.menu-options button svg {
+    width: 16px;
+    height: 16px;
+}
+
+.delete-image-btn {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--color-urgent);
+    background: transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--color-urgent);
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.15s;
+    margin-top: 8px;
+}
+
+.delete-image-btn:hover {
+    background: var(--color-urgent);
+    color: white;
+}
+
+.delete-image-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Selected image indicator */
+.ql-editor img:focus,
+.ql-editor img.selected {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+}
