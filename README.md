@@ -2,152 +2,73 @@
 
 ## 📋 Visão Geral
 
-Este é um aplicativo web moderno de gerenciamento de tarefas (to-do list) desenvolvido em vanilla JavaScript, HTML e CSS. O sistema oferece uma experiência rica de usuário com edição de texto avançada, suporte a imagens com redimensionamento dinâmico, organização por pastas, sistema de prioridades e funcionalidades de importação/exportação.
+Este é um aplicativo web moderno de gerenciamento de tarefas (to-do list) desenvolvido em vanilla JavaScript, HTML e CSS. A versão atual conta com uma **arquitetura híbrida**, permitindo o uso offline ou sincronizado na nuvem via Supabase. O foco do projeto é oferecer uma experiência de usuário premium, com edição rica de texto, manipulação avançada de imagens e design responsivo.
 
 ## ✨ Características Principais
 
-### 1. **Gerenciamento de Tarefas**
-- ✅ Criação, edição e exclusão de tarefas
-- 📝 Editor de texto rico (Rich Text Editor) usando Quill.js
-- 🖼️ **Suporte a Imagens:** Upload, alinhamento e redimensionamento por arraste
-- 🎯 Sistema de prioridades com três níveis
-- 📅 **Controle de Prazos:** Campo de data para vencimento das tarefas
-- 📁 Organização em pastas personalizáveis
-- 🏷️ Sistema de tickets/tags para referência
-- ✓ Marcação de tarefas como concluídas
-- 🗑️ Lixeira com exclusão reversível (soft delete)
+### 1. **Gerenciamento Avançado**
+- ✅ **CRUD Completo:** Criação, leitura, edição e exclusão.
+- 📝 **Rich Text:** Editor Quill.js customizado.
+- 🖼️ **Imagens Pro:** Upload, redimensionamento por arraste e alinhamento visual.
+- 🎯 **Prioridades:** Níveis (Baixa, Normal, Urgente) com ordenação automática.
+- 📅 **Prazos:** Controle de datas de vencimento.
+- 📁 **Organização:** Pastas e Tags (Tickets).
 
-### 2. **Interface do Usuário**
-- 🎨 Design moderno e minimalista
-- 🌓 Modo claro/escuro com transições suaves e placeholder legível no dark mode
-- 📱 Interface responsiva
-- 🎭 Animações e transições elegantes
-- 💫 Background com gradientes radiais sutis
-- 🪟 Modal de edição em tela cheia com efeito de blur
+### 2. **Sincronização & Segurança (Supabase)**
+- ☁️ **Cloud Sync:** Banco de dados PostgreSQL em tempo real.
+- 🔐 **Autenticação:** Sistema de contas seguro (Email/Senha).
+- 🔄 **Híbrido:** Funciona perfeitamente offline (LocalStorage) se não configurado.
+- 🛡️ **Segurança:** Dados isolados por usuário (Row Level Security).
 
-### 3. **Funcionalidades Avançadas**
-- 📥 Importação de arquivos `.txt` e `.html`
-- 📤 Exportação de tarefas em formatos TXT ou HTML
-- 🔍 Filtros por status (todas, pendentes, urgentes, concluídas)
-- 📂 Filtros por pasta
-- 🗂️ Ordenação inteligente por prioridade
-- 💾 Persistência local usando LocalStorage
-- 🧹 Limpeza automática da lixeira (30 dias)
-
-## 🎯 Sistema de Prioridades
-
-O sistema possui três níveis de prioridade:
-
-1. **Sem prioridade** (`low`) - Cor: Cinza (#94A3B8)
-   - Prioridade padrão para novas tarefas
-   - Peso de ordenação: 2
-
-2. **Baixa** (`normal`) - Cor: Laranja (#F59E0B)
-   - Prioridade intermediária
-   - Peso de ordenação: 3
-
-3. **Urgente** (`urgente`) - Cor: Vermelho (#EF4444)
-   - Maior prioridade
-   - Peso de ordenação: 4
-
-**Ordem de exibição:** Urgente → Baixa → Sem prioridade → Concluídas (peso: 1)
+### 3. **Interface (UI/UX)**
+- 🎨 Temas Claro/Escuro automáticos.
+- 📱 Responsividade total (Mobile/Desktop).
+- 📍 Sidebar intuitiva com botão de **Logout** facilitado.
 
 ## 🏗️ Estrutura do Projeto
 
 ```
 todo-list/
-├── index.html          # Estrutura HTML principal
-├── style.css           # Estilos e temas
-├── script.js           # Lógica da aplicação
-├── README.md           # Este arquivo (overview)
-└── TECHNICAL.md        # Documentação técnica detalhada
+├── index.html            # Markup principal e Modais
+├── style.css             # Estilos, Variáveis e Temas
+├── script.js             # Lógica de interação e Camada de Dados
+├── supabase-config.js    # Arquivo de configuração do usuário (Credenciais)
+├── DATABASE_SETUP.md     # Manual de configuração do Banco de Dados
+├── README.md             # Visão geral do projeto
+└── TECHNICAL.md          # Documentação profunda para desenvolvedores
 ```
 
 ## 🚀 Como Usar
 
-1. **Abrir o aplicativo:**
-   - Abra o arquivo `index.html` em um navegador moderno.
+1. **Acesso Básico (Offline):**
+   - Abra o `index.html` em qualquer navegador. O app funcionará localmente.
 
-2. **Criar uma tarefa:**
-   - Clique no botão "Nova Tarefa".
-   - Preencha o título e descrição.
-   - **Imagens:** Clique no ícone de imagem na toolbar para fazer upload.
-   - **Edição de Imagem:** Clique na imagem inserida para abrir o menu de alinhamento e arraste as alças nas bordas/cantos para redimensionar livremente.
-   - Selecione pasta, prioridade, prazo e ticket (opcional).
-   - Clique em "Salvar".
+2. **Habilitar Nuvem (Recomendado):**
+   - Siga as instruções em `DATABASE_SETUP.md` para criar seu banco gratuito.
+   - Configure o `supabase-config.js`.
+   - Ao recarregar, faça login ou crie sua conta no modal.
 
-3. **Organizar em pastas:**
-   - Use o botão "+" na sidebar para criar pastas.
-   - Clique em uma pasta para ver suas tarefas.
+3. **Recursos de Imagem:**
+   - Cole imagens direto da área de transferência ou use o botão de upload.
+   - Clique na imagem para revelar as alças de redimensionamento e opções de alinhamento.
 
-4. **Filtrar tarefas:**
-   - Use os botões de filtro: Todas, Pendentes, Urgentes, Concluídas.
-   - Clique no botão "Lixeira" para ver itens excluídos.
+4. **Importar/Exportar:**
+   - Use o botão no cabeçalho para importar `.txt`/`.html`.
+   - Exporte tarefas individuais pelo menu no rodapé do modal de edição.
 
-5. **Importar/Exportar:**
-   - **Importar:** Clique em "Importar" no cabeçalho.
-   - **Exportar:** Abra uma tarefa e use o dropdown "Exportar" no rodapé do modal.
+## 🛠️ Stack Tecnológico
 
-## 💾 Armazenamento de Dados
+- **Frontend:** HTML5, CSS3, Vanilla JS.
+- **Backend:** Supabase (PostgreSQL, Auth).
+- **Bibliotecas:** 
+  - `Quill.js` (Editor de Texto)
+  - `@supabase/supabase-js` (Cliente Web)
+  - `Google Fonts` (Família Outfit)
 
-Os dados são salvos automaticamente no **LocalStorage** do navegador:
-- `onboardingTasks`: Array de tarefas (incluindo imagens em Base64).
-- `onboardingFolders`: Array de pastas personalizadas.
-- `theme`: Preferência de tema (light/dark).
+## 📝 Notas de Desenvolvimento
 
-## 🎨 Temas
+Para detalhes sobre a implementação do banco de dados, mapeamento de colunas (`description` vs `desc`) e funcionamento do redimensionamento de imagens, consulte o arquivo `TECHNICAL.md`.
 
-O aplicativo suporta dois temas:
-- **Modo Claro:** Tons de branco, cinza claro e roxo (#8B5CF6).
-- **Modo Escuro:** Tons de azul escuro (#0F172A). O placeholder do editor foi ajustado para melhor legibilidade.
+## 👨‍💻 Licença e Autor
 
-## 📱 Responsividade
-
-- **Desktop:** Sidebar fixa, grid de tarefas responsivo.
-- **Mobile:** Sidebar retrátil, modal em tela cheia.
-
-## 🛠️ Tecnologias Utilizadas
-
-- **HTML5 & CSS3:** Layout semântico, variáveis CSS, Grid/Flexbox e animações.
-- **JavaScript (ES6+):** Manipulação de DOM, Event Listeners e lógica baseada em estado.
-- **Quill.js 1.3.6:** Editor de texto rico com customização de toolbar e handlers.
-- **Image Handling:** Conversão automática para Base64 e sistema customizado de resizing via mouse events.
-- **Google Fonts:** Fonte Outfit.
-- **LocalStorage API:** Persistência de dados.
-
-## 🔮 Funcionalidades Futuras (Sugestões)
-
-- [ ] Drag and drop para reordenar tarefas na lista principal
-- [ ] Busca/pesquisa de tarefas por título ou conteúdo
-- [ ] Subtarefas (checklists dentro de tarefas)
-- [ ] Lembretes e notificações baseados no prazo (due date)
-- [ ] Sincronização na nuvem/IndexedDB para backups maiores
-- [ ] Atalhos de teclado
-
-## 📝 Notas para Continuidade do Desenvolvimento
-
-### Estrutura de Dados das Tarefas
-```javascript
-{
-  id: timestamp,
-  title: string,
-  desc: string (HTML incluindo Base64),
-  richDesc: boolean (true),
-  folderId: string | null,
-  priority: 'low' | 'normal' | 'urgente',
-  dueDate: string (YYYY-MM-DD) | "",
-  ticket: string,
-  completed: boolean,
-  createdAt: ISO string,
-  updatedAt: ISO string (opcional),
-  deletedAt: ISO string | null
-}
-```
-
-## 👨‍💻 Autor
-
-Desenvolvido com foco em UX/UI moderno e código limpo.
-
-## 📄 Licença
-
-Este projeto é de código aberto para fins educacionais e pessoais.
+Projeto open-source para fins educacionais.

@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const supabase = window.supabase;
     // --- DOM Elements ---
     const taskList = document.getElementById('taskList');
     const folderList = document.getElementById('folderList');
@@ -340,21 +341,245 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- State ---
-    let tasks = JSON.parse(localStorage.getItem('onboardingTasks')) || [];
-    let folders = JSON.parse(localStorage.getItem('onboardingFolders')) || [
-        { id: 'work', name: 'Trabalho' },
-        { id: 'personal', name: 'Pessoal' }
-    ];
-
+    // --- State ---
+    let tasks = [];
+    let folders = [];
     let activeFolderId = 'all';
     let activeStatusFilter = 'all';
     let currentTaskId = null; // null = creating new
+    let user = null; // Supabase user
+
+    // --- DB Interface (Abstraction) ---
+    const DB = {
+        async init() {
+            if (supabase) {
+                const { data: { session } } = await supabase.auth.getSession();
+                user = session?.user || null;
+
+                // Auth State Listener
+                supabase.auth.onAuthStateChange(async (event, session) => {
+                    user = session?.user || null;
+                    updateAuthUI();
+                    if (event === 'SIGNED_IN') {
+                        await this.loadAll();
+                        renderTasks();
+                        renderFolders();
+                        closeAuthModal();
+                    } else if (event === 'SIGNED_OUT') {
+                        tasks = [];
+                        folders = [];
+                        renderTasks();
+                        renderFolders();
+                        openAuthModal();
+                    }
+                });
+            } else {
+                console.log('Supabase not configured. Using LocalStorage.');
+            }
+
+            if (!user && !supabase) {
+                // Load from LocalStorage if no Supabase or not logged in yet (and skipped auth)
+                this.loadFromLocal();
+            } else if (user) {
+                await this.loadAll();
+            } else {
+                // Supabase configured but not logged in -> Show Modal
+                openAuthModal();
+            }
+        },
+
+        async loadAll() {
+            if (user) {
+                // Load Folders
+                const { data: fData, error: fError } = await supabase.from('folders').select('*').order('created_at');
+                if (!fError) folders = fData || [];
+
+                // Load Tasks
+                const { data: tData, error: tError } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                if (!tError) {
+                    // Map DB columns to our object structure if needed, or stick to DB structure.
+                    // Let's adapt DB snake_case to our camelCase logic or refactor app to use snake_case.
+                    // For minimal refactor, let's map:
+                    tasks = (tData || []).map(t => ({
+                        ...t,
+                        desc: t.description,
+                        folderId: t.folder_id,
+                        richDesc: true, // always true for now
+                        dueDate: t.due_date,
+                        createdAt: t.created_at,
+                        deletedAt: t.deleted_at
+                    }));
+                }
+            } else {
+                this.loadFromLocal();
+            }
+        },
+
+        loadFromLocal() {
+            tasks = JSON.parse(localStorage.getItem('onboardingTasks')) || [];
+            folders = JSON.parse(localStorage.getItem('onboardingFolders')) || [
+                { id: 'work', name: 'Trabalho' },
+                { id: 'personal', name: 'Pessoal' }
+            ];
+        },
+
+        async addTask(task) {
+            if (user) {
+                const dbTask = mapTaskToDB(task);
+                const { data, error } = await supabase.from('tasks').insert(dbTask).select().single();
+                if (data) return mapDBToTask(data);
+                if (error) { alert('Erro ao salvar no banco: ' + error.message); return task; }
+            } else {
+                return task; // Local save is handled by full array save
+            }
+        },
+
+        async updateTask(task) {
+            if (user) {
+                const dbTask = mapTaskToDB(task);
+                const { error } = await supabase.from('tasks').update(dbTask).eq('id', task.id);
+                if (error) alert('Erro ao atualizar: ' + error.message);
+            }
+        },
+
+        async deleteFolder(id) {
+            if (user) {
+                await supabase.from('folders').delete().eq('id', id);
+            }
+        },
+
+        async addFolder(folder) {
+            if (user) {
+                await supabase.from('folders').insert({
+                    id: folder.id,
+                    user_id: user.id,
+                    name: folder.name
+                });
+            }
+        },
+
+        async updateFolder(folder) {
+            if (user) {
+                await supabase.from('folders').update({ name: folder.name }).eq('id', folder.id);
+            }
+        },
+
+        async saveLocal() {
+            if (!user) {
+                localStorage.setItem('onboardingTasks', JSON.stringify(tasks));
+                localStorage.setItem('onboardingFolders', JSON.stringify(folders));
+            }
+        }
+    };
+
+    // Helper Mappers
+    function mapTaskToDB(t) {
+        return {
+            id: t.id,
+            user_id: user.id,
+            title: t.title,
+            description: t.desc, // HTML (Base64 included) -> Renamed to avoid keyword
+            folder_id: t.folderId,
+            priority: t.priority,
+            status: t.completed ? 'completed' : 'pending',
+            completed: t.completed,
+            due_date: t.dueDate || null,
+            ticket: t.ticket,
+            created_at: t.createdAt,
+            deleted_at: t.deletedAt || null
+        };
+    }
+
+    function mapDBToTask(dbT) {
+        return {
+            ...dbT,
+            desc: dbT.description, // Map back to internal 'desc'
+            folderId: dbT.folder_id,
+            richDesc: true,
+            dueDate: dbT.due_date,
+            createdAt: dbT.created_at,
+            deletedAt: dbT.deleted_at
+        };
+    }
+
+    // --- Auth Logic ---
+    const authModal = document.getElementById('authModal');
+    const authEmail = document.getElementById('authEmail');
+    const authPassword = document.getElementById('authPassword');
+    const btnSignIn = document.getElementById('btnSignIn');
+    const btnSignUp = document.getElementById('btnSignUp');
+    const btnSkipAuth = document.getElementById('btnSkipAuth');
+    const authError = document.getElementById('authError');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    function openAuthModal() {
+        if (authModal) authModal.classList.remove('hidden');
+    }
+
+    function closeAuthModal() {
+        if (authModal) authModal.classList.add('hidden');
+    }
+
+    function updateAuthUI() {
+        if (user) {
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
+        } else {
+            if (logoutBtn) logoutBtn.classList.add('hidden');
+        }
+    }
+
+    if (btnSignIn) {
+        btnSignIn.addEventListener('click', async () => {
+            if (!supabase) return alert('Configure o supabase-config.js primeiro');
+            const email = authEmail.value;
+            const password = authPassword.value;
+            authError.style.display = 'none';
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                authError.textContent = error.message;
+                authError.style.display = 'block';
+            }
+        });
+    }
+
+    if (btnSignUp) {
+        btnSignUp.addEventListener('click', async () => {
+            if (!supabase) return alert('Configure o supabase-config.js primeiro');
+            const email = authEmail.value;
+            const password = authPassword.value;
+            authError.style.display = 'none';
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                authError.textContent = error.message;
+                authError.style.display = 'block';
+            } else {
+                alert('Verifique seu email para confirmar o cadastro!');
+            }
+        });
+    }
+
+    if (btnSkipAuth) {
+        btnSkipAuth.addEventListener('click', () => {
+            closeAuthModal();
+            DB.loadFromLocal();
+            renderTasks();
+            renderFolders();
+        });
+    }
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            if (supabase) await supabase.auth.signOut();
+        });
+    }
 
     // --- Init ---
-    cleanupTrash();
     initTheme();
-    renderFolders();
-    renderTasks();
+    // Async init
+    DB.init().then(() => {
+        renderFolders();
+        renderTasks();
+    });
 
     // --- Interaction Listeners ---
 
@@ -451,10 +676,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sidebar & Navigation
     toggleSidebarBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
 
-    addFolderBtn.addEventListener('click', () => {
+    addFolderBtn.addEventListener('click', async () => {
         const name = prompt('Nome da nova pasta:');
         if (name && name.trim()) {
-            folders.push({ id: 'f_' + Date.now(), name: name.trim() });
+            const newFolder = { id: 'f_' + Date.now(), name: name.trim() };
+            folders.push(newFolder);
+            await DB.addFolder(newFolder);
             saveFolders();
             renderFolders();
         }
@@ -491,8 +718,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Core Functions ---
 
-    function saveFolders() { localStorage.setItem('onboardingFolders', JSON.stringify(folders)); }
-    function saveTasks() { localStorage.setItem('onboardingTasks', JSON.stringify(tasks)); }
+    function saveFolders() { DB.saveLocal(); }
+    function saveTasks() { DB.saveLocal(); }
 
     function cleanupTrash() {
         const now = Date.now();
@@ -503,6 +730,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderFolders() {
+        // ... (no change to render logic itself yet, just re-use existing)
         folderList.innerHTML = `
             <div class="folder-row">
                 <button class="folder-item ${activeFolderId === 'all' ? 'active' : ''}" onclick="window.selectFolder('all')">
@@ -555,9 +783,6 @@ document.addEventListener('DOMContentLoaded', () => {
             modalTitleInput.value = task.title;
             // Set Quill content
             if (task.richDesc) {
-                // If we have saved delta or html
-                // For simplicity let's assume we save HTML in 'desc' or 'richDesc'
-                // Let's use 'desc' for HTML now.
                 quill.root.innerHTML = task.desc || '';
             } else {
                 quill.setText(task.desc || '');
@@ -596,46 +821,60 @@ document.addEventListener('DOMContentLoaded', () => {
         currentTaskId = null;
     }
 
-    function saveCurrentTask() {
+    async function saveCurrentTask() {
         const title = modalTitleInput.value.trim();
         if (!title) { modalTitleInput.focus(); return; }
 
-        // Get HTML from Quill
         const htmlContent = quill.root.innerHTML; // contains tags
-        // Also get text for preview if needed, but we can strip html later
-
         const folderId = modalFolderSelect.value;
         const priority = modalPrioritySelect.value;
         const dueDate = modalDueDateInput.value;
         const ticket = modalTicketInput.value.trim();
 
         if (currentTaskId) {
+            // Update Array
+            let updatedTaskRef = null;
             tasks = tasks.map(t => {
                 if (t.id === currentTaskId) {
-                    return { ...t, title, desc: htmlContent, richDesc: true, folderId, priority, dueDate, ticket, updatedAt: new Date().toISOString() };
+                    updatedTaskRef = { ...t, title, desc: htmlContent, richDesc: true, folderId, priority, dueDate, ticket, updatedAt: new Date().toISOString() };
+                    return updatedTaskRef;
                 }
                 return t;
             });
+
+            // Update DB
+            if (updatedTaskRef) {
+                await DB.updateTask(updatedTaskRef);
+            }
+
         } else {
-            tasks.unshift({
+            // New Task
+            const newTask = {
                 id: Date.now(),
                 title,
                 desc: htmlContent,
-                richDesc: true, // Marker to know it's HTML
+                richDesc: true,
                 folderId,
                 priority,
                 dueDate,
                 ticket,
                 completed: false,
                 createdAt: new Date().toISOString()
-            });
+            };
+            tasks.unshift(newTask);
+
+            // Add to DB
+            // We might want to wait for ID from DB if we used generated IDs, but we use timestamps/client-IDs for simplicity now.
+            // If using BigInt in DB, we need to be careful. JS Date.now() fits in BigInt.
+            const savedTask = await DB.addTask(newTask);
+            // If DB returns a new object (e.g. with server timestamp), we should update our local state.
+            // But let's trust our optimistic UI for now or sync later.
         }
 
         saveTasks();
         renderTasks();
         closeModal();
     }
-
     // --- Global Actions ---
     window.selectFolder = (id) => {
         activeFolderId = id;
@@ -645,17 +884,24 @@ document.addEventListener('DOMContentLoaded', () => {
         renderTasks();
     };
 
-    window.editFolder = (id) => {
+    window.editFolder = async (id) => {
         const f = folders.find(x => x.id === id);
         if (!f) return;
         const n = prompt('Novo nome:', f.name);
-        if (n && n.trim()) { f.name = n.trim(); saveFolders(); renderFolders(); }
+        if (n && n.trim()) {
+            f.name = n.trim();
+            await DB.updateFolder(f);
+            saveFolders();
+            renderFolders();
+        }
     };
 
-    window.deleteFolder = (id) => {
+    window.deleteFolder = async (id) => {
         if (!confirm('Excluir pasta?')) return;
+        await DB.deleteFolder(id); // Delete from DB first
         folders = folders.filter(x => x.id !== id);
         tasks = tasks.map(t => t.folderId === id ? { ...t, folderId: null } : t);
+
         saveFolders();
         if (activeFolderId === id) window.selectFolder('all');
         else renderFolders();
@@ -664,17 +910,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Task Context Actions
     window.openTask = (id) => openModal(id);
 
-    function softDeleteTask(id) {
+    async function softDeleteTask(id) {
         if (confirm('Mover para Lixeira?')) {
-            tasks = tasks.map(t => t.id === id ? { ...t, deletedAt: new Date().toISOString() } : t);
+            const t = tasks.find(x => x.id === id);
+            if (!t) return;
+            t.deletedAt = new Date().toISOString();
+
+            if (user) await DB.updateTask(t);
+
             saveTasks();
             renderTasks();
             closeModal();
         }
     }
 
-    function destroyTask(id) {
+    async function destroyTask(id) {
         if (confirm('Excluir permanentemente?')) {
+            if (user && supabase) {
+                // Delete from DB
+                const { error } = await supabase.from('tasks').delete().eq('id', id);
+                if (error && error.code !== 'PGRST116') { // PGRST116 is no rows, ignore
+                    console.error(error);
+                }
+            }
             tasks = tasks.filter(t => t.id !== id);
             saveTasks();
             renderTasks();
@@ -682,15 +940,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.restoreTask = (id) => {
-        tasks = tasks.map(t => t.id === id ? { ...t, deletedAt: null } : t);
+    window.restoreTask = async (id) => {
+        const t = tasks.find(x => x.id === id);
+        if (!t) return;
+        t.deletedAt = null;
+
+        if (user) await DB.updateTask(t);
+
         saveTasks();
         renderTasks();
     };
 
-    window.toggleComplete = (e, id) => {
+    window.toggleComplete = async (e, id) => {
         e.stopPropagation(); // prevent modal open
-        tasks = tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t);
+        const t = tasks.find(x => x.id === id);
+        if (!t) return;
+        t.completed = !t.completed;
+
+        if (user) await DB.updateTask(t);
+
         saveTasks();
         renderTasks();
     };
