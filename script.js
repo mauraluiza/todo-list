@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitleInput = document.getElementById('modalTitleInput');
     const modalFolderSelect = document.getElementById('modalFolderSelect');
     const modalPrioritySelect = document.getElementById('modalPrioritySelect');
+    const modalDueDateInput = document.getElementById('modalDueDateInput');
     const modalTicketInput = document.getElementById('modalTicketInput');
     const modalDateInfo = document.getElementById('modalDateInfo');
     const modalSaveBtn = document.getElementById('modalSaveBtn');
@@ -564,6 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             modalFolderSelect.value = task.folderId || '';
             modalPrioritySelect.value = task.priority || 'normal';
+            modalDueDateInput.value = task.dueDate || '';
             modalTicketInput.value = task.ticket || '';
 
             const dateStr = new Date(task.createdAt).toLocaleDateString();
@@ -579,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
             quill.setText('');
             modalFolderSelect.value = activeFolderId !== 'all' ? activeFolderId : '';
             modalPrioritySelect.value = 'low';
+            modalDueDateInput.value = '';
             modalTicketInput.value = '';
             modalDateInfo.textContent = 'Nova tarefa';
             modalDeleteBtn.classList.add('hidden');
@@ -603,12 +606,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const folderId = modalFolderSelect.value;
         const priority = modalPrioritySelect.value;
+        const dueDate = modalDueDateInput.value;
         const ticket = modalTicketInput.value.trim();
 
         if (currentTaskId) {
             tasks = tasks.map(t => {
                 if (t.id === currentTaskId) {
-                    return { ...t, title, desc: htmlContent, richDesc: true, folderId, priority, ticket, updatedAt: new Date().toISOString() };
+                    return { ...t, title, desc: htmlContent, richDesc: true, folderId, priority, dueDate, ticket, updatedAt: new Date().toISOString() };
                 }
                 return t;
             });
@@ -620,6 +624,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 richDesc: true, // Marker to know it's HTML
                 folderId,
                 priority,
+                dueDate,
                 ticket,
                 completed: false,
                 createdAt: new Date().toISOString()
