@@ -2,14 +2,16 @@
 
 ## 📋 Visão Geral
 
-Este é um aplicativo web moderno de gerenciamento de tarefas (to-do list) desenvolvido em vanilla JavaScript, HTML e CSS. O sistema oferece uma experiência rica de usuário com edição de texto avançada, organização por pastas, sistema de prioridades e funcionalidades de importação/exportação.
+Este é um aplicativo web moderno de gerenciamento de tarefas (to-do list) desenvolvido em vanilla JavaScript, HTML e CSS. O sistema oferece uma experiência rica de usuário com edição de texto avançada, suporte a imagens com redimensionamento dinâmico, organização por pastas, sistema de prioridades e funcionalidades de importação/exportação.
 
 ## ✨ Características Principais
 
 ### 1. **Gerenciamento de Tarefas**
 - ✅ Criação, edição e exclusão de tarefas
 - 📝 Editor de texto rico (Rich Text Editor) usando Quill.js
+- 🖼️ **Suporte a Imagens:** Upload, alinhamento e redimensionamento por arraste
 - 🎯 Sistema de prioridades com três níveis
+- 📅 **Controle de Prazos:** Campo de data para vencimento das tarefas
 - 📁 Organização em pastas personalizáveis
 - 🏷️ Sistema de tickets/tags para referência
 - ✓ Marcação de tarefas como concluídas
@@ -17,7 +19,7 @@ Este é um aplicativo web moderno de gerenciamento de tarefas (to-do list) desen
 
 ### 2. **Interface do Usuário**
 - 🎨 Design moderno e minimalista
-- 🌓 Modo claro/escuro com transições suaves
+- 🌓 Modo claro/escuro com transições suaves e placeholder legível no dark mode
 - 📱 Interface responsiva
 - 🎭 Animações e transições elegantes
 - 💫 Background com gradientes radiais sutis
@@ -64,104 +66,81 @@ todo-list/
 ## 🚀 Como Usar
 
 1. **Abrir o aplicativo:**
-   - Abra o arquivo `index.html` em um navegador moderno
-   - Ou utilize um servidor local (ex: Live Server, http-server)
+   - Abra o arquivo `index.html` em um navegador moderno.
 
 2. **Criar uma tarefa:**
-   - Clique no botão "Nova Tarefa"
-   - Preencha o título e descrição (com formatação rica)
-   - Selecione pasta, prioridade e ticket (opcional)
-   - Clique em "Salvar"
+   - Clique no botão "Nova Tarefa".
+   - Preencha o título e descrição.
+   - **Imagens:** Clique no ícone de imagem na toolbar para fazer upload.
+   - **Edição de Imagem:** Clique na imagem inserida para abrir o menu de alinhamento e arraste as alças nas bordas/cantos para redimensionar livremente.
+   - Selecione pasta, prioridade, prazo e ticket (opcional).
+   - Clique em "Salvar".
 
 3. **Organizar em pastas:**
-   - Use o botão "+" na sidebar para criar pastas
-   - Clique em uma pasta para ver suas tarefas
-   - Renomeie ou exclua pastas usando os ícones ao passar o mouse
+   - Use o botão "+" na sidebar para criar pastas.
+   - Clique em uma pasta para ver suas tarefas.
 
 4. **Filtrar tarefas:**
-   - Use os botões de filtro: Todas, Pendentes, Urgentes, Concluídas
-   - Clique no botão "Lixeira" para ver itens excluídos
+   - Use os botões de filtro: Todas, Pendentes, Urgentes, Concluídas.
+   - Clique no botão "Lixeira" para ver itens excluídos.
 
 5. **Importar/Exportar:**
-   - **Importar:** Clique em "Importar" no cabeçalho e selecione um arquivo .txt ou .html
-   - **Exportar:** Abra uma tarefa e clique em "Exportar" no rodapé do modal
+   - **Importar:** Clique em "Importar" no cabeçalho.
+   - **Exportar:** Abra uma tarefa e use o dropdown "Exportar" no rodapé do modal.
 
 ## 💾 Armazenamento de Dados
 
 Os dados são salvos automaticamente no **LocalStorage** do navegador:
-- `onboardingTasks`: Array de todas as tarefas
-- `onboardingFolders`: Array de pastas personalizadas
-- `theme`: Preferência de tema (light/dark)
+- `onboardingTasks`: Array de tarefas (incluindo imagens em Base64).
+- `onboardingFolders`: Array de pastas personalizadas.
+- `theme`: Preferência de tema (light/dark).
 
 ## 🎨 Temas
 
-O aplicativo suporta dois temas com variáveis CSS personalizadas:
-
-- **Modo Claro:** Tons de branco, cinza claro e roxo (#8B5CF6)
-- **Modo Escuro:** Tons de azul escuro (#0F172A) com ajustes de contraste
-
-O tema é detectado automaticamente baseado na preferência do sistema e pode ser alternado manualmente.
+O aplicativo suporta dois temas:
+- **Modo Claro:** Tons de branco, cinza claro e roxo (#8B5CF6).
+- **Modo Escuro:** Tons de azul escuro (#0F172A). O placeholder do editor foi ajustado para melhor legibilidade.
 
 ## 📱 Responsividade
 
-O layout se adapta para:
-- **Desktop:** Sidebar fixa, grid de tarefas responsivo
-- **Mobile:** Sidebar retrátil, modal em tela cheia
+- **Desktop:** Sidebar fixa, grid de tarefas responsivo.
+- **Mobile:** Sidebar retrátil, modal em tela cheia.
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **HTML5:** Estrutura semântica
-- **CSS3:** Variáveis CSS, Grid, Flexbox, animações
-- **JavaScript (ES6+):** Vanilla JS com features modernas
-- **Quill.js 1.3.6:** Editor de texto rico
-- **Google Fonts:** Fonte Outfit para tipografia moderna
-- **LocalStorage API:** Persistência de dados
-- **FileReader API:** Importação de arquivos
-- **Blob API:** Exportação de arquivos
+- **HTML5 & CSS3:** Layout semântico, variáveis CSS, Grid/Flexbox e animações.
+- **JavaScript (ES6+):** Manipulação de DOM, Event Listeners e lógica baseada em estado.
+- **Quill.js 1.3.6:** Editor de texto rico com customização de toolbar e handlers.
+- **Image Handling:** Conversão automática para Base64 e sistema customizado de resizing via mouse events.
+- **Google Fonts:** Fonte Outfit.
+- **LocalStorage API:** Persistência de dados.
 
 ## 🔮 Funcionalidades Futuras (Sugestões)
 
-- [ ] Drag and drop para reordenar tarefas
-- [ ] Busca/pesquisa de tarefas
+- [ ] Drag and drop para reordenar tarefas na lista principal
+- [ ] Busca/pesquisa de tarefas por título ou conteúdo
 - [ ] Subtarefas (checklists dentro de tarefas)
-- [ ] Anexos de imagens
-- [ ] Lembretes e notificações
-- [ ] Sincronização na nuvem
-- [ ] Colaboração em tempo real
-- [ ] Estatísticas e dashboards
-- [ ] PWA (Progressive Web App)
+- [ ] Lembretes e notificações baseados no prazo (due date)
+- [ ] Sincronização na nuvem/IndexedDB para backups maiores
 - [ ] Atalhos de teclado
 
 ## 📝 Notas para Continuidade do Desenvolvimento
-
-### Convenções de Código
-- Variáveis em camelCase
-- Funções descritivas em verbos (render, save, toggle)
-- Estados globais no escopo principal do DOMContentLoaded
-- Event listeners configurados na seção de inicialização
 
 ### Estrutura de Dados das Tarefas
 ```javascript
 {
   id: timestamp,
   title: string,
-  desc: string (HTML),
-  richDesc: boolean,
+  desc: string (HTML incluindo Base64),
+  richDesc: boolean (true),
   folderId: string | null,
   priority: 'low' | 'normal' | 'urgente',
+  dueDate: string (YYYY-MM-DD) | "",
   ticket: string,
   completed: boolean,
   createdAt: ISO string,
   updatedAt: ISO string (opcional),
   deletedAt: ISO string | null
-}
-```
-
-### Estrutura de Dados das Pastas
-```javascript
-{
-  id: string ('f_' + timestamp ou IDs específicos),
-  name: string
 }
 ```
 
