@@ -804,6 +804,201 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     color: var(--primary) !important;
 }
 
+/* --- RESPONSIVE DESIGN & MOBILE OPTIMIZATIONS --- */
+
+/* Sidebar Open State (Desktop or Mobile if needed) */
+.sidebar.open {
+    transform: translateX(0);
+}
+
+/* Mobile Overlay for Sidebar */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 45;
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* Media Query for Mobile/Tablets */
+@media (max-width: 900px) {
+    :root {
+        --sidebar-width: 280px;
+        /* Slightly wider for better touch targets if needed */
+    }
+
+    /* Layout tweaks */
+    .layout-wrapper {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        transform: translateX(-100%);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .app-container {
+        margin-left: 0;
+        padding: 20px 16px;
+        width: 100%;
+    }
+
+    /* Header */
+    .mobile-only-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        margin-right: 8px;
+        border-radius: 8px;
+    }
+
+    .mobile-only-btn:active {
+        background-color: var(--bg-card);
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+    }
+
+    /* Hide less critical header buttons if space is tight, or icon-only */
+    #importBtn,
+    #logoutBtn {
+        padding: 10px;
+        font-size: 0 !important;
+        gap: 0 !important;
+        min-width: 40px;
+    }
+
+    #importBtn svg,
+    #logoutBtn svg {
+        margin: 0;
+    }
+
+    .secondary-btn-header {
+        padding: 10px;
+        min-width: 40px;
+        justify-content: center;
+    }
+
+    /* Filters: Scrollable horizontal list */
+    .filters {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding: 4px 0 12px 0;
+        /* Space for shadow/scroll */
+        -webkit-overflow-scrolling: touch;
+        mask-image: linear-gradient(to right, black 90%, transparent 100%);
+    }
+
+    .filter-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Grid: Single Column */
+    .task-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    /* Task Card Touch Optimization */
+    .task-card:hover {
+        transform: none;
+        /* Disable hover lift on touch */
+    }
+
+    .task-card:active {
+        transform: scale(0.98);
+    }
+
+    /* Bottom FAB for New Task on Mobile */
+    #newTaskBtn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        z-index: 40;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        padding: 0;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+        font-size: 0;
+        /* Hide text */
+    }
+
+    #newTaskBtn svg {
+        width: 28px;
+        height: 28px;
+    }
+
+    /* Modal Full Screen */
+    .modal-container {
+        width: 100%;
+        height: 100%;
+        /* Fallback */
+        height: 100dvh;
+        border-radius: 0;
+        max-width: none;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-body {
+        padding-bottom: 80px;
+        /* Space for floating keyboard or footer */
+    }
+
+    .modal-footer {
+        padding: 16px;
+        background: var(--bg-sidebar);
+        /* Stick to bottom or just normal flow? Normal flow is safer for mobile keyboards. */
+    }
+
+    /* Make toolbar sticky in modal */
+    .ql-toolbar {
+        position: sticky;
+        top: 0;
+        background: var(--bg-sidebar);
+        z-index: 10;
+        border-bottom: 1px solid var(--border);
+    }
+
+    /* Image Menu Mobile Position */
+    .image-edit-menu {
+        position: fixed;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%);
+        width: 90% !important;
+        max-width: 300px;
+        z-index: 200;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+}
+
+
+.ql-toolbar .ql-image:hover {
+    color: var(--primary) !important;
+}
+
 .ql-snow .ql-stroke {
     stroke: var(--text-muted);
 }

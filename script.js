@@ -674,7 +674,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Sidebar & Navigation
-    toggleSidebarBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleSidebar() {
+        sidebar.classList.toggle('open');
+        if (sidebarOverlay) sidebarOverlay.classList.toggle('active');
+    }
+
+    toggleSidebarBtn.addEventListener('click', toggleSidebar);
+
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('active');
+        });
+    }
 
     addFolderBtn.addEventListener('click', async () => {
         const name = prompt('Nome da nova pasta:');
@@ -880,7 +894,13 @@ document.addEventListener('DOMContentLoaded', () => {
         activeFolderId = id;
         renderFolders();
         pageTitle.textContent = (id === 'all') ? 'Todas' : (folders.find(f => f.id === id)?.name || 'Pasta');
-        sidebar.classList.remove('open');
+
+        // Mobile: Close sidebar after selection
+        if (window.innerWidth <= 900) {
+            sidebar.classList.remove('open');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('active');
+        }
+
         renderTasks();
     };
 
