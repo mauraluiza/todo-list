@@ -938,7 +938,12 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
         height: 56px;
         border-radius: 50%;
         padding: 0;
+        display: flex;
+        /* Ensure flex for centering */
+        align-items: center;
+        /* Vertical center */
         justify-content: center;
+        /* Horizontal center */
         box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
         font-size: 0;
         /* Hide text */
@@ -991,6 +996,15 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
         max-width: 300px;
         z-index: 200;
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Specific overrides for Auth Modal on mobile to keep it centered and small */
+    #authModal .modal-container {
+        width: 90% !important;
+        max-width: 400px !important;
+        height: auto !important;
+        border-radius: 16px !important;
+        margin: auto;
     }
 }
 

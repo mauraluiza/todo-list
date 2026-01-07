@@ -509,6 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSignIn = document.getElementById('btnSignIn');
     const btnSignUp = document.getElementById('btnSignUp');
     const btnSkipAuth = document.getElementById('btnSkipAuth');
+    const btnForgotPassword = document.getElementById('btnForgotPassword');
     const authError = document.getElementById('authError');
     const logoutBtn = document.getElementById('logoutBtn');
 
@@ -545,8 +546,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSignUp) {
         btnSignUp.addEventListener('click', async () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
+
+            // Authorization Check
+            const authCode = prompt('Cadastro restrito. Digite o código de autorização:');
+            if (authCode !== 'admin-maura') {
+                return alert('Código incorreto. Cadastro não autorizado.');
+            }
+
             const email = authEmail.value;
             const password = authPassword.value;
+
+            if (!email || !password) return alert('Preencha email e senha.');
+
             authError.style.display = 'none';
             const { error } = await supabase.auth.signUp({ email, password });
             if (error) {
@@ -554,6 +565,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 authError.style.display = 'block';
             } else {
                 alert('Verifique seu email para confirmar o cadastro!');
+            }
+        });
+    }
+
+    if (btnForgotPassword) {
+        btnForgotPassword.addEventListener('click', async () => {
+            if (!supabase) return alert('Configure o supabase-config.js primeiro');
+            const email = authEmail.value;
+            if (!email) {
+                authError.textContent = 'Digite seu email para recuperar a senha.';
+                authError.style.display = 'block';
+                return;
+            }
+            authError.style.display = 'none';
+
+            // Supabase Reset Password
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.href, // Redirect back to this app
+            });
+
+            if (error) {
+                authError.textContent = error.message;
+                authError.style.display = 'block';
+            } else {
+                alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
             }
         });
     }
