@@ -334,6 +334,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Confirm / Prompt Custom Modals
+    const inputModal = document.getElementById('inputModal');
+    const inputModalTitle = document.getElementById('inputModalTitle');
+    const inputModalValue = document.getElementById('inputModalValue');
+    const inputModalCancel = document.getElementById('inputModalCancel');
+    const inputModalConfirm = document.getElementById('inputModalConfirm');
+
+    const confirmModal = document.getElementById('confirmModal');
+    const confirmModalTitle = document.getElementById('confirmModalTitle');
+    const confirmModalMessage = document.getElementById('confirmModalMessage');
+    const confirmModalCancel = document.getElementById('confirmModalCancel');
+    const confirmModalConfirm = document.getElementById('confirmModalConfirm');
+
+    function showCustomPrompt(title, defaultValue = '') {
+        return new Promise((resolve) => {
+            inputModalTitle.textContent = title;
+            inputModalValue.value = defaultValue;
+            inputModal.classList.remove('hidden');
+            inputModalValue.focus();
+
+            const close = () => {
+                inputModal.classList.add('hidden');
+                // Cleanup to prevent multiple listeners accumulation if reused differently
+                inputModalConfirm.onclick = null;
+                inputModalCancel.onclick = null;
+                inputModalValue.onkeydown = null;
+            };
+
+            inputModalConfirm.onclick = () => {
+                const val = inputModalValue.value;
+                close();
+                resolve(val);
+            };
+
+            inputModalCancel.onclick = () => {
+                close();
+                resolve(null);
+            };
+
+            inputModalValue.onkeydown = (e) => {
+                if (e.key === 'Enter') inputModalConfirm.click();
+                if (e.key === 'Escape') inputModalCancel.click();
+            };
+        });
+    }
+
+    function showCustomConfirm(title, message) {
+        return new Promise((resolve) => {
+            confirmModalTitle.textContent = title;
+            confirmModalMessage.textContent = message;
+            confirmModal.classList.remove('hidden');
+
+            const close = () => {
+                confirmModal.classList.add('hidden');
+                confirmModalConfirm.onclick = null;
+                confirmModalCancel.onclick = null;
+            };
+
+            confirmModalConfirm.onclick = () => {
+                close();
+                resolve(true);
+            };
+
+            confirmModalCancel.onclick = () => {
+                close();
+                resolve(false);
+            };
+        });
+    }
+
     modalOverlay.addEventListener('scroll', () => {
         if (currentEditingImage && resizeWrapper && !resizeWrapper.classList.contains('hidden')) {
             updateResizeWrapper();
@@ -548,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
 
             // Authorization Check
-            const authCode = prompt('Cadastro restrito. Digite o código de autorização:');
+            const authCode = await showCustomPrompt('Cadastro restrito', 'Digite o código de autorização');
             if (authCode !== 'admin-maura') {
                 return alert('Código incorreto. Cadastro não autorizado.');
             }
@@ -727,7 +797,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     addFolderBtn.addEventListener('click', async () => {
-        const name = prompt('Nome da nova pasta:');
+        const name = await showCustomPrompt('Nova Pasta', '');
         if (name && name.trim()) {
             const newFolder = { id: 'f_' + Date.now(), name: name.trim() };
             folders.push(newFolder);
@@ -943,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.editFolder = async (id) => {
         const f = folders.find(x => x.id === id);
         if (!f) return;
-        const n = prompt('Novo nome:', f.name);
+        const n = await showCustomPrompt('Renomear Pasta', f.name);
         if (n && n.trim()) {
             f.name = n.trim();
             await DB.updateFolder(f);
@@ -953,7 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.deleteFolder = async (id) => {
-        if (!confirm('Excluir pasta?')) return;
+        if (!await showCustomConfirm('Excluir Pasta', 'Tem certeza que deseja excluir esta pasta?')) return;
         await DB.deleteFolder(id); // Delete from DB first
         folders = folders.filter(x => x.id !== id);
         tasks = tasks.map(t => t.folderId === id ? { ...t, folderId: null } : t);
@@ -967,7 +1037,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openTask = (id) => openModal(id);
 
     async function softDeleteTask(id) {
-        if (confirm('Mover para Lixeira?')) {
+        if (await showCustomConfirm('Lixeira', 'Mover para a Lixeira?')) {
             const t = tasks.find(x => x.id === id);
             if (!t) return;
             t.deletedAt = new Date().toISOString();
@@ -981,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function destroyTask(id) {
-        if (confirm('Excluir permanentemente?')) {
+        if (await showCustomConfirm('Excluir', 'Excluir permanentemente? Esta ação não pode ser desfeita.')) {
             if (user && supabase) {
                 // Delete from DB
                 const { error } = await supabase.from('tasks').delete().eq('id', id);
