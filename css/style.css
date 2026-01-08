@@ -134,7 +134,39 @@ body {
     display: flex;
     flex-direction: column;
     gap: 4px;
+    gap: 4px;
     overflow-y: auto;
+    flex: 1; /* Pushes footer down */
+}
+
+.sidebar-footer {
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+}
+
+.sidebar-logout-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--color-urgent);
+    display: flex;
+    align-items: center;
+    gap: 12px; /* icon + text gap */
+    padding: 10px 12px;
+    width: 100%;
+    border-radius: 10px;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.sidebar-logout-btn:hover {
+    background: var(--color-urgent-bg);
+}
+
+.logout-text {
+    /* Ensure text is visible */
 }
 
 .folder-row {

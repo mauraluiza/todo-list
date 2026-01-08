@@ -443,6 +443,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         openAuthModal();
                     }
                 });
+
+                // Initial UI Update
+                updateAuthUI();
             } else {
                 console.log('Supabase not configured. Using LocalStorage.');
             }
