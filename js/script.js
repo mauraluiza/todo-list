@@ -520,17 +520,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async addFolder(folder) {
             if (user) {
-                await supabase.from('folders').insert({
+                const { error } = await supabase.from('folders').insert({
                     id: folder.id,
                     user_id: user.id,
                     name: folder.name
                 });
+                if (error) {
+                    console.error('Erro ao criar pasta:', error);
+                    alert('Erro ao criar pasta: ' + error.message);
+                    // Revert local change if needed, but for now just alerting is enough to debug
+                }
             }
         },
 
         async updateFolder(folder) {
             if (user) {
-                await supabase.from('folders').update({ name: folder.name }).eq('id', folder.id);
+                const { error } = await supabase.from('folders').update({ name: folder.name }).eq('id', folder.id);
+                if (error) {
+                    console.error('Erro ao atualizar pasta:', error);
+                    alert('Erro ao atualizar pasta: ' + error.message);
+                }
             }
         },
 
@@ -549,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
             user_id: user.id,
             title: t.title,
             description: t.desc, // HTML (Base64 included) -> Renamed to avoid keyword
-            folder_id: t.folderId,
+            folder_id: t.folderId || null, // FIX: Send NULL if empty string to satisfy Foreign Key
             priority: t.priority,
             status: t.completed ? 'completed' : 'pending',
             completed: t.completed,
