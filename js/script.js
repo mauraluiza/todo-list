@@ -1090,25 +1090,49 @@ document.addEventListener('DOMContentLoaded', () => {
     if (joinOrgBtn) {
         joinOrgBtn.addEventListener('click', async () => {
             if (!user) return alert('Faça login primeiro.');
+
             const code = await showCustomPrompt('Entrar em Organização', '', 'Código da organização');
-            if (code) {
-                // Use RPC to bypass RLS (Non-members can't select from table directly)
-                const { data, error } = await supabase.rpc('get_org_by_code', { p_code: code });
+            if (!code) return; // User cancelled
 
-                if (error || !data || data.length === 0) return alert('Organização não encontrada para este código.');
+            console.log('Tentando entrar na org com código:', code);
 
-                const org = data[0]; // RPC returns array of rows
+            // Use RPC to bypass RLS
+            const { data, error } = await supabase.rpc('get_org_by_code', { p_code: code });
 
-                const { error: joinError } = await supabase.from('organization_members').insert({
-                    organization_id: org.id,
-                    user_id: user.id
-                });
+            console.log('RPC resposta:', data, error);
 
-                if (joinError) alert('Erro ao entrar (talvez já participe?): ' + joinError.message);
-                else {
-                    alert(`Bem-vindo à ${org.name}!`);
-                    await DB.loadOrgs(); // refresh list
+            if (error) {
+                alert('Erro na busca: ' + error.message);
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                alert('Organização não encontrada para este código (verifique se está correto).');
+                return;
+            }
+
+            const org = data[0]; // RPC returns array of rows
+            console.log('Org encontrada:', org);
+
+            const { error: joinError } = await supabase.from('organization_members').insert({
+                organization_id: org.id,
+                user_id: user.id,
+                role: 'member' // Explicitly set role
+            });
+
+            if (joinError) {
+                console.error('Erro ao inserir membro:', joinError);
+                if (joinError.code === '23505') {
+                    alert('Você já participa desta organização.');
+                } else {
+                    alert('Erro ao entrar: ' + joinError.message);
                 }
+            } else {
+                alert(`Sucesso! Bem-vindo à ${org.name}!`);
+                await DB.loadOrgs(); // refresh list
+
+                // Force switch to new org? Optional.
+                // For now just update the list so user can see it.
             }
         });
     }
