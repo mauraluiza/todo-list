@@ -1571,7 +1571,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Task Context Actions
-    window.openTask = (id) => openModal(id);
+    window.openTask = (id) => {
+        const t = tasks.find(x => x.id === id);
+        if (t) openModal(t);
+    };
 
     async function softDeleteTask(id) {
         if (await showCustomConfirm('Lixeira', 'Mover para a Lixeira?')) {
