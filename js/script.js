@@ -869,6 +869,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 authError.style.display = 'block';
             }
         });
+
+        // Add Enter key listener for login
+        const handleEnterLogin = (e) => {
+            if (e.key === 'Enter') {
+                btnSignIn.click();
+            }
+        };
+        authEmail.addEventListener('keypress', handleEnterLogin);
+        authPassword.addEventListener('keypress', handleEnterLogin);
     }
 
     if (btnSignUp) {
