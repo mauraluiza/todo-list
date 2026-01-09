@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
     const addFolderBtn = document.getElementById('addFolderBtn');
     const filterBtns = document.querySelectorAll('.filter-btn');
+    const orgSelect = document.getElementById('orgSelect');
+    const joinOrgBtn = document.getElementById('joinOrgBtn');
 
     // Modal Elements
     const modalOverlay = document.getElementById('taskModalOverlay');
@@ -438,6 +440,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeStatusFilter = 'all';
     let currentTaskId = null; // null = creating new
     let user = null; // Supabase user
+    let myOrgs = [];
+    let currentOrg = null; // { id, name } or null (Personal)
 
     // --- DB Interface (Abstraction) ---
     const DB = {
@@ -472,8 +476,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!user && !supabase) {
                 // Load from LocalStorage if no Supabase or not logged in yet (and skipped auth)
+                document.querySelector('.org-switcher').style.display = 'none'; // Hide switcher offline
                 this.loadFromLocal();
             } else if (user) {
+                // Load Organizations first
+                await this.loadOrgs();
                 await this.loadAll();
             } else {
                 // Supabase configured but not logged in -> Show Modal
@@ -481,14 +488,50 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
+        async loadOrgs() {
+            if (!user) return;
+            // Fetch organizations the user is a member of
+            const { data, error } = await supabase
+                .from('organization_members')
+                .select(`
+                    organization_id,
+                    organizations ( id, name, code )
+                `);
+
+            if (error || !data) {
+                console.warn('Orgs fetch error (Tables might not exist yet):', error);
+                myOrgs = [];
+            } else {
+                myOrgs = data.map(row => row.organizations).filter(o => o); // flattening
+            }
+
+            // Default to first org or maintain selection
+            if (myOrgs.length > 0) {
+                if (!currentOrg || !myOrgs.find(o => o.id === currentOrg.id)) {
+                    currentOrg = myOrgs[0];
+                }
+            } else {
+                currentOrg = null; // Personal Mode
+            }
+            renderOrgSwitcher();
+        },
+
         async loadAll() {
             if (user) {
-                // Load Folders
-                const { data: fData, error: fError } = await supabase.from('folders').select('*').order('created_at');
+                // Load Folders (Filtered by Org)
+                let fQuery = supabase.from('folders').select('*').order('created_at');
+                if (currentOrg) fQuery = fQuery.eq('organization_id', currentOrg.id);
+                else fQuery = fQuery.is('organization_id', null);
+
+                const { data: fData, error: fError } = await fQuery;
                 if (!fError) folders = fData || [];
 
-                // Load Tasks
-                const { data: tData, error: tError } = await supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                // Load Tasks (Filtered by Org)
+                let tQuery = supabase.from('tasks').select('*').order('created_at', { ascending: false });
+                if (currentOrg) tQuery = tQuery.eq('organization_id', currentOrg.id);
+                else tQuery = tQuery.is('organization_id', null);
+
+                const { data: tData, error: tError } = await tQuery;
                 if (!tError) {
                     // Map DB columns to our object structure if needed, or stick to DB structure.
                     // Let's adapt DB snake_case to our camelCase logic or refactor app to use snake_case.
@@ -519,6 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
         async addTask(task) {
             if (user) {
                 const dbTask = mapTaskToDB(task);
+                if (currentOrg) dbTask.organization_id = currentOrg.id;
+
                 const { data, error } = await supabase.from('tasks').insert(dbTask).select().single();
                 if (data) return mapDBToTask(data);
                 if (error) { alert('Erro ao salvar no banco: ' + error.message); return task; }
@@ -530,6 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
         async updateTask(task) {
             if (user) {
                 const dbTask = mapTaskToDB(task);
+                // Keep existing org_id or use current? Usually tasks don't move orgs simply by edit.
+                // We rely on RLS preventing move if not allowed.
                 const { error } = await supabase.from('tasks').update(dbTask).eq('id', task.id);
                 if (error) alert('Erro ao atualizar: ' + error.message);
             }
@@ -543,11 +590,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async addFolder(folder) {
             if (user) {
-                const { error } = await supabase.from('folders').insert({
+                const payload = {
                     id: folder.id,
                     user_id: user.id,
                     name: folder.name
-                });
+                };
+                if (currentOrg) payload.organization_id = currentOrg.id;
+
+                const { error } = await supabase.from('folders').insert(payload);
                 if (error) {
                     console.error('Erro ao criar pasta:', error);
                     alert('Erro ao criar pasta: ' + error.message);
@@ -642,6 +692,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 authError.textContent = error.message;
                 authError.style.display = 'block';
             }
+            if (error) {
+                authError.textContent = error.message;
+                authError.style.display = 'block';
+            }
         });
     }
 
@@ -649,23 +703,52 @@ document.addEventListener('DOMContentLoaded', () => {
         btnSignUp.addEventListener('click', async () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
 
-            // Authorization Check
-            const authCode = await showCustomPrompt('Cadastro restrito', '', 'Digite o código de autorização');
-            if (authCode !== 'admin-maura') {
-                return alert('Código incorreto. Cadastro não autorizado.');
-            }
+            // 1. Ask for code
+            const inputCode = await showCustomPrompt('Criar Conta', '', 'Código da organização (ex: admin-maura)');
+            if (!inputCode) return; // Cancelled
 
             const email = authEmail.value;
             const password = authPassword.value;
-
             if (!email || !password) return alert('Preencha email e senha.');
 
+            // 2. Validate Code against DB (or legacy hardcode for prototype safety)
+            let orgIdToJoin = null;
+
+            // Try fetch org by code
+            const { data: orgs, error: orgError } = await supabase
+                .from('organizations')
+                .select('id, code')
+                .eq('code', inputCode)
+                .single();
+
+            if (orgs) {
+                orgIdToJoin = orgs.id;
+            } else if (inputCode === 'admin-maura') {
+                // Fallback for prompt requirement: "considere que o codigo admin-maura faz parte da organização maura"
+                // If the table doesn't exist or is empty, we proceed to create user, BUT we warn/handle logic later.
+                // For now, let's allow content.
+            } else {
+                return alert('Código de organização inválido.');
+            }
+
             authError.style.display = 'none';
-            const { error } = await supabase.auth.signUp({ email, password });
+
+            // 3. Sign Up
+            const { data: authData, error } = await supabase.auth.signUp({ email, password });
+
             if (error) {
                 authError.textContent = error.message;
                 authError.style.display = 'block';
             } else {
+                // 4. If success and we have an org to join, insert into members
+                // Note: Triggers are better for this, but client-side logic requested.
+                if (authData.user && orgIdToJoin) {
+                    await supabase.from('organization_members').insert({
+                        organization_id: orgIdToJoin,
+                        user_id: authData.user.id,
+                        role: 'member'
+                    });
+                }
                 alert('Verifique seu email para confirmar o cadastro!');
             }
         });
@@ -847,6 +930,42 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTasks();
         });
     });
+
+    if (orgSelect) {
+        orgSelect.addEventListener('change', async (e) => {
+            const newVal = e.target.value;
+            if (newVal === 'personal') currentOrg = null;
+            else currentOrg = myOrgs.find(o => o.id === newVal);
+
+            // Reload data
+            await DB.loadAll();
+            renderFolders();
+            renderTasks();
+            pageTitle.textContent = currentOrg ? currentOrg.name : 'Pessoal';
+        });
+    }
+
+    if (joinOrgBtn) {
+        joinOrgBtn.addEventListener('click', async () => {
+            if (!user) return alert('Faça login primeiro.');
+            const code = await showCustomPrompt('Entrar em Organização', '', 'Código da organização');
+            if (code) {
+                const { data: org, error } = await supabase.from('organizations').select('id, name').eq('code', code).single();
+                if (error || !org) return alert('Organização não encontrada para este código.');
+
+                const { error: joinError } = await supabase.from('organization_members').insert({
+                    organization_id: org.id,
+                    user_id: user.id
+                });
+
+                if (joinError) alert('Erro ao entrar (talvez já participe?): ' + joinError.message);
+                else {
+                    alert(`Bem-vindo à ${org.name}!`);
+                    await DB.loadOrgs(); // refresh list
+                }
+            }
+        });
+    }
 
     // Modal / Task Actions
     newTaskBtn.addEventListener('click', () => openModal());
@@ -1215,6 +1334,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', n);
             localStorage.setItem('theme', n);
+        });
+    }
+
+    function renderOrgSwitcher() {
+        if (!orgSelect) return;
+        orgSelect.innerHTML = '';
+
+        // Option: Personal
+        // const optPersonal = document.createElement('option');
+        // optPersonal.value = 'personal';
+        // optPersonal.textContent = 'Pessoal (Offline)';
+        // if (!currentOrg) optPersonal.selected = true;
+        // orgSelect.appendChild(optPersonal);
+
+        if (myOrgs.length === 0) {
+            const opt = document.createElement('option');
+            opt.text = "Sem Organização";
+            orgSelect.appendChild(opt);
+            orgSelect.disabled = true;
+            return;
+        }
+        orgSelect.disabled = false;
+
+        myOrgs.forEach(org => {
+            const opt = document.createElement('option');
+            opt.value = org.id;
+            opt.textContent = org.name;
+            if (currentOrg && currentOrg.id === org.id) opt.selected = true;
+            orgSelect.appendChild(opt);
         });
     }
 

@@ -16,15 +16,37 @@
     <div class="layout-wrapper">
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
         <aside class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h2>Pastas</h2>
-                <button id="addFolderBtn" class="add-folder-btn" title="Nova Pasta">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                </button>
+            <div class="sidebar-header"
+                style="flex-direction: column; align-items: flex-start; gap: 12px; margin-bottom: 20px;">
+                <div class="org-switcher" style="width: 100%; display: flex; gap: 8px;">
+                    <select id="orgSelect"
+                        style="flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-main); font-family: inherit; cursor: pointer;">
+                        <!-- Options populated by JS -->
+                    </select>
+                    <button id="joinOrgBtn" title="Entrar em outra organização"
+                        style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: var(--text-main); padding: 0 8px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                    <h2
+                        style="font-size: 0.9rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">
+                        Pastas</h2>
+                    <button id="addFolderBtn" class="add-folder-btn" title="Nova Pasta">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <nav class="folder-list" id="folderList"></nav>
             <div class="sidebar-footer">
