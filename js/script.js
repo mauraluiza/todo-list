@@ -528,28 +528,58 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async loadOrgs() {
             if (!user) return;
-            // Fetch organizations the user is a member of
-            const { data, error } = await supabase
-                .from('organization_members')
-                .select(`
-                    organization_id,
-                    organizations ( id, name, code )
-                `);
+            // Fetch organizations the user is a member of (Robust)
 
-            if (error || !data) {
-                console.warn('Orgs fetch error (Tables might not exist yet):', error);
-                myOrgs = [];
-            } else {
-                myOrgs = data.map(row => row.organizations).filter(o => o); // flattening
+            console.log('Carregando organizações (Método Robusto)...');
+
+            // Step 1: Get Organization IDs from Memberships
+            const { data: memberData, error: memberError } = await supabase
+                .from('organization_members')
+                .select('organization_id')
+                .eq('user_id', user.id);
+
+            if (memberError) {
+                console.error('Erro ao buscar memberships:', memberError);
+                return;
             }
 
-            // Default to first org or maintain selection
+            if (!memberData || memberData.length === 0) {
+                console.log('Usuário não é membro de nenhuma organização.');
+                myOrgs = [];
+                currentOrg = null;
+                renderOrgSwitcher();
+                return;
+            }
+
+            const orgIds = memberData.map(row => row.organization_id);
+            console.log('IDs encontrados:', orgIds);
+
+            // Step 2: Get Organization Details
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .select('id, name, code')
+                .in('id', orgIds);
+
+            if (orgError) {
+                console.error('Erro ao buscar tabela organizations:', orgError);
+                // Fallback to "Unknown Orgs" if V9 failed, but at least we know IDs exist
+                alert('Erro de permissão ao ler Organizações (Migration V9).');
+                myOrgs = [];
+            } else {
+                myOrgs = orgData || [];
+                console.log('Orgs carregadas:', myOrgs);
+            }
+
+            // Default selection logic
             if (myOrgs.length > 0) {
-                if (!currentOrg || !myOrgs.find(o => o.id === currentOrg.id)) {
+                // If currentOrg is set but not in list anymore (left org?), reset
+                if (currentOrg && !myOrgs.find(o => o.id === currentOrg.id)) {
                     currentOrg = myOrgs[0];
                 }
+                // If no currentOrg, set first
+                if (!currentOrg) currentOrg = myOrgs[0];
             } else {
-                currentOrg = null; // Personal Mode
+                currentOrg = null;
             }
             renderOrgSwitcher();
         },
