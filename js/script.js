@@ -876,7 +876,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
 
             // 1. Ask for code
-            const inputCode = await showCustomPrompt('Criar Conta', '', 'Código da organização (ex: admin-maura)');
+            const inputCode = await showCustomPrompt('Criar Conta', '', 'Código da organização');
             if (!inputCode) return; // Cancelled
 
             const email = authEmail.value;
@@ -1159,10 +1159,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } else {
                 alert(`Sucesso! Bem-vindo à ${org.name}!`);
-                await DB.loadOrgs(); // refresh list
+                await DB.loadOrgs(); // Refresh list
 
-                // Force switch to new org? Optional.
-                // For now just update the list so user can see it.
+                // Force switch to new org
+                const joinedOrg = myOrgs.find(o => o.id === org.id);
+                if (joinedOrg) {
+                    currentOrg = joinedOrg;
+                    orgSelect.value = currentOrg.id; // Sync UI
+                    await DB.loadAll(); // Reload tasks/folders for this org
+                    renderFolders();
+                    renderTasks();
+                    const pageTitle = document.querySelector('header h1');
+                    if (pageTitle) pageTitle.textContent = currentOrg.name;
+                }
             }
         });
     }
