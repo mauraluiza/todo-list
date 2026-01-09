@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterBtns = document.querySelectorAll('.filter-btn');
     const orgSelect = document.getElementById('orgSelect');
     const joinOrgBtn = document.getElementById('joinOrgBtn');
+    const settingsBtn = document.getElementById('settingsBtn'); // Admin Btn
 
     // Modal Elements
     const modalOverlay = document.getElementById('taskModalOverlay');
@@ -616,6 +617,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
 
+        async createOrganization(name, code) {
+            if (!user) return;
+            // 1. Insert Org
+            const { data: org, error } = await supabase.from('organizations').insert({
+                name,
+                code
+            }).select().single();
+
+            if (error) {
+                alert('Erro ao criar: ' + error.message);
+                return false;
+            }
+
+            // 2. Add creator as member (admin role could be future)
+            await supabase.from('organization_members').insert({
+                organization_id: org.id,
+                user_id: user.id,
+                role: 'admin'
+            });
+
+            return true;
+        },
+
         async saveLocal() {
             if (!user) {
                 localStorage.setItem('onboardingTasks', JSON.stringify(tasks));
@@ -665,6 +689,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const authError = document.getElementById('authError');
     const logoutBtn = document.getElementById('logoutBtn');
 
+    // Admin Modal Elements
+    const adminModal = document.getElementById('adminModal');
+    const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
+    const adminOrgName = document.getElementById('adminOrgName');
+    const adminOrgCode = document.getElementById('adminOrgCode');
+    const adminCreateOrgBtn = document.getElementById('adminCreateOrgBtn');
+
     function openAuthModal() {
         if (authModal) setModalState(authModal, true);
     }
@@ -676,8 +707,15 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAuthUI() {
         if (user) {
             if (logoutBtn) logoutBtn.classList.remove('hidden');
+            // Admin Check
+            if (user.email === 'mauraluiza015@gmail.com' && settingsBtn) {
+                settingsBtn.classList.remove('hidden');
+            } else if (settingsBtn) {
+                settingsBtn.classList.add('hidden');
+            }
         } else {
             if (logoutBtn) logoutBtn.classList.add('hidden');
+            if (settingsBtn) settingsBtn.classList.add('hidden');
         }
     }
 
@@ -963,6 +1001,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     alert(`Bem-vindo à ${org.name}!`);
                     await DB.loadOrgs(); // refresh list
                 }
+            }
+        });
+    }
+
+
+
+    // Admin Settings Actions
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            if (adminModal) setModalState(adminModal, true);
+        });
+    }
+
+    if (closeAdminModalBtn) {
+        closeAdminModalBtn.addEventListener('click', () => {
+            if (adminModal) setModalState(adminModal, false);
+        });
+    }
+
+    if (adminCreateOrgBtn) {
+        adminCreateOrgBtn.addEventListener('click', async () => {
+            const name = adminOrgName.value.trim();
+            const code = adminOrgCode.value.trim();
+
+            if (!name || !code) return alert('Preencha nome e código.');
+
+            const success = await DB.createOrganization(name, code);
+            if (success) {
+                alert('Organização criada com sucesso!');
+                adminOrgName.value = '';
+                adminOrgCode.value = '';
+                setModalState(adminModal, false);
+                await DB.loadOrgs(); // refresh list
             }
         });
     }
