@@ -1679,12 +1679,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!orgSelect) return;
         orgSelect.innerHTML = '';
 
-        // Option: Personal
-        // const optPersonal = document.createElement('option');
-        // optPersonal.value = 'personal';
-        // optPersonal.textContent = 'Pessoal (Offline)';
-        // if (!currentOrg) optPersonal.selected = true;
-        // orgSelect.appendChild(optPersonal);
+        console.log('Rendering Org Switcher. Orgs:', myOrgs);
 
         if (myOrgs.length === 0) {
             const opt = document.createElement('option');
