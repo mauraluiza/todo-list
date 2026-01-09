@@ -611,7 +611,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         richDesc: true, // always true for now
                         dueDate: t.due_date,
                         createdAt: t.created_at,
-                        deletedAt: t.deleted_at
+                        deletedAt: t.deleted_at,
+                        creatorName: 'Usuário' // Placeholder until join is restored
                     }));
                 }
             } else {
