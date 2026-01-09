@@ -33,6 +33,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const exportMenu = document.getElementById('exportMenu');
     const exportOpts = document.querySelectorAll('.export-opt');
 
+
+    // --- Helper for Modal Animations ---
+    function setModalState(modal, isOpen) {
+        if (!modal) return;
+        if (isOpen) {
+            modal.classList.remove('hidden');
+            // Force reflow
+            void modal.offsetWidth;
+            modal.classList.add('visible');
+        } else {
+            modal.classList.remove('visible');
+            setTimeout(() => {
+                if (!modal.classList.contains('visible')) {
+                    modal.classList.add('hidden');
+                }
+            }, 400);
+        }
+    }
+
     // --- Editor Init ---
     // Initialize Quill with image support
     const quill = new Quill('#editor-container', {
@@ -351,11 +370,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             inputModalTitle.textContent = title;
             inputModalValue.value = defaultValue;
-            inputModal.classList.remove('hidden');
+            setModalState(inputModal, true);
             inputModalValue.focus();
 
             const close = () => {
-                inputModal.classList.add('hidden');
+                setModalState(inputModal, false);
                 // Cleanup to prevent multiple listeners accumulation if reused differently
                 inputModalConfirm.onclick = null;
                 inputModalCancel.onclick = null;
@@ -384,10 +403,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve) => {
             confirmModalTitle.textContent = title;
             confirmModalMessage.textContent = message;
-            confirmModal.classList.remove('hidden');
+            setModalState(confirmModal, true);
 
             const close = () => {
-                confirmModal.classList.add('hidden');
+                setModalState(confirmModal, false);
                 confirmModalConfirm.onclick = null;
                 confirmModalCancel.onclick = null;
             };
@@ -596,11 +615,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logoutBtn');
 
     function openAuthModal() {
-        if (authModal) authModal.classList.remove('hidden');
+        if (authModal) setModalState(authModal, true);
     }
 
     function closeAuthModal() {
-        if (authModal) authModal.classList.add('hidden');
+        if (authModal) setModalState(authModal, false);
     }
 
     function updateAuthUI() {
@@ -944,12 +963,12 @@ document.addEventListener('DOMContentLoaded', () => {
             modalDeleteBtn.classList.add('hidden');
         }
 
-        modalOverlay.classList.remove('hidden');
         if (!taskId) modalTitleInput.focus();
+        setModalState(modalOverlay, true);
     }
 
     function closeModal() {
-        modalOverlay.classList.add('hidden');
+        setModalState(modalOverlay, false);
         currentTaskId = null;
     }
 

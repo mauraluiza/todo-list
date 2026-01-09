@@ -136,7 +136,8 @@ body {
     gap: 4px;
     gap: 4px;
     overflow-y: auto;
-    flex: 1; /* Pushes footer down */
+    flex: 1;
+    /* Pushes footer down */
 }
 
 .sidebar-footer {
@@ -152,7 +153,8 @@ body {
     color: var(--color-urgent);
     display: flex;
     align-items: center;
-    gap: 12px; /* icon + text gap */
+    gap: 12px;
+    /* icon + text gap */
     padding: 10px 12px;
     width: 100%;
     border-radius: 10px;
@@ -582,6 +584,7 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
 }
 
 /* MODAL Styles */
+/* MODAL Styles */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -589,19 +592,27 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
     z-index: 100;
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
+    pointer-events: none;
+}
+
+.modal-overlay.visible {
     opacity: 1;
-    transition: opacity 0.2s;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    pointer-events: auto;
 }
 
 .modal-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
+    /* Kept for legacy/utility, but we rely on generic .hidden for display:none */
+    display: none !important;
 }
 
 .modal-container {
@@ -618,8 +629,19 @@ html[data-theme="dark"] .theme-toggle .moon-icon {
     flex-direction: column;
     overflow: hidden;
     border: 1px solid var(--border);
-    animation: zoomIn 0.2s ease-out;
+
+    /* Animation State */
+    transform: scale(0.95) translateY(10px);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
 }
+
+.modal-overlay.visible .modal-container {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+/* @keyframes zoomIn removed in favor of transitions */
 
 @keyframes zoomIn {
     from {
