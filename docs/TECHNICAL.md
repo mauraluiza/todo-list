@@ -5,9 +5,9 @@
 O sistema utiliza um padrão **Abstracted Data Layer (Camada de Dados Abstraída)**, permitindo operar em dois modos:
 
 1.  **Modo Offline (Default):** Utiliza `LocalStorage` do navegador persistindo arrays `tasks` e `folders`.
-2.  **Modo Nuvem (Supabase):** Utiliza PostgreSQL e Auth via API, ativado automaticamente quando as credenciais são detectadas em `supabase-config.js` e há uma sessão ativa.
+2.  **Modo Nuvem (Supabase):** Utiliza PostgreSQL e Auth via API, ativado automaticamente quando as credenciais são detectadas em `js/supabase-config.js` e há uma sessão ativa.
 
-### Fluxo de Inicialização (`script.js`)
+### Fluxo de Inicialização (`js/script.js`)
 1.  **Boot:** `DOMContentLoaded` lê `window.supabase`.
 2.  **Verificação:** `DB.init()` verifica sessão (`supabase.auth.getSession`).
 3.  **Auth UI:** Se configurado mas não logado, abre o modal de login.
@@ -15,11 +15,26 @@ O sistema utiliza um padrão **Abstracted Data Layer (Camada de Dados Abstraída
 
 ---
 
+## 📂 Estrutura do Projeto
+
+A organização de diretórios segue responsabilidades claras:
+
+*   **`js/`**: Lógica da aplicação (`script.js`) e configurações de ambiente (`supabase-config.js`).
+*   **`css/`**: Estilos globais e variáveis de tema.
+*   **`docs/`**: Documentação técnica e planos de teste.
+*   **`database/`**:
+    *   `migrations/`: Histórico de scripts SQL aplicados ao Supabase.
+    *   `scripts/`: Utilitários SQL (e.g., limpeza de testes).
+*   **`supabase/`**: Configurações da CLI do Supabase (opcional).
+*   **`index.html`**: Ponto de entrada da aplicação.
+
+---
+
 ## 🗂️ Implementação de Interfaces (UI/UX)
 
 ### 1. Transições Suaves (Smooth Modals)
 A aplicação utiliza um sistema de classes CSS para gerenciar estados de animação, substituindo keyframes rígidos por transições fluidas.
-- **Helper:** `setModalState(modal, isOpen)` em `script.js`.
+- **Helper:** `setModalState(modal, isOpen)` em `js/script.js`.
 - **Lógica:**
     - **Open:** Remove `.hidden`, força reflow (`void modal.offsetWidth`), adiciona `.visible` (trigger opacity: 1, backdrop-filter: 8px).
     - **Close:** Remove `.visible` (fade out), aguarda `transitionend` (400ms setTimeout), adiciona `.hidden`.

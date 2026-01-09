@@ -1732,7 +1732,8 @@ document.addEventListener('DOMContentLoaded', () => {
         myOrgs.forEach(org => {
             const opt = document.createElement('option');
             opt.value = org.id;
-            opt.textContent = org.name;
+            opt.textContent = org.name || 'Sem Nome'; // Fallback
+            console.log('Adicionando opção:', org.name, org.id);
             if (currentOrg && currentOrg.id === org.id) opt.selected = true;
             orgSelect.appendChild(opt);
         });
