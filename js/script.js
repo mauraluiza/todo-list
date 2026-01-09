@@ -366,10 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmModalCancel = document.getElementById('confirmModalCancel');
     const confirmModalConfirm = document.getElementById('confirmModalConfirm');
 
-    function showCustomPrompt(title, defaultValue = '') {
+    function showCustomPrompt(title, defaultValue = '', placeholder = '') {
         return new Promise((resolve) => {
             inputModalTitle.textContent = title;
             inputModalValue.value = defaultValue;
+            inputModalValue.placeholder = placeholder;
             setModalState(inputModal, true);
             inputModalValue.focus();
 
@@ -649,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
 
             // Authorization Check
-            const authCode = await showCustomPrompt('Cadastro restrito', 'Digite o código de autorização');
+            const authCode = await showCustomPrompt('Cadastro restrito', '', 'Digite o código de autorização');
             if (authCode !== 'admin-maura') {
                 return alert('Código incorreto. Cadastro não autorizado.');
             }
