@@ -480,13 +480,49 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.querySelector('.org-switcher').style.display = 'none'; // Hide switcher offline
                 this.loadFromLocal();
             } else if (user) {
-                // Load Organizations first
+                // Load Organizations and Profile
                 await this.loadOrgs();
+                await this.loadProfile();
                 await this.loadAll();
             } else {
                 // Supabase configured but not logged in -> Show Modal
                 openAuthModal();
             }
+        },
+
+        async loadProfile() {
+            if (!user) return;
+            const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+            if (!error && data) {
+                // Populate modal fields (lazy way, better to have a state object but direct DOM is fine for this size)
+                const pUsername = document.getElementById('profileUsername');
+                const pFirst = document.getElementById('profileFirstName');
+                const pLast = document.getElementById('profileLastName');
+                const pNick = document.getElementById('profileNickname');
+                const pBirth = document.getElementById('profileBirthDate');
+                const pEmail = document.getElementById('profileEmailDisplay');
+
+                if (pUsername) pUsername.value = data.username || '';
+                if (pFirst) pFirst.value = data.first_name || '';
+                if (pLast) pLast.value = data.last_name || '';
+                if (pNick) pNick.value = data.nickname || '';
+                if (pBirth) pBirth.value = data.birth_date || ''; // Ensure YYYY-MM-DD
+                if (pEmail) pEmail.value = user.email;
+            } else if (error && error.code === 'PGRST116') {
+                // No profile found? Should be created by trigger, but we can upsert one just in case.
+                await supabase.from('profiles').insert({ id: user.id });
+            }
+        },
+
+        async saveProfile(profileData) {
+            if (!user) return;
+            const { error } = await supabase.from('profiles').update(profileData).eq('id', user.id);
+            if (error) {
+                if (error.code === '23505') alert('Nome de usuário já está em uso.'); // Unique violation
+                else alert('Erro ao salvar perfil: ' + error.message);
+                return false;
+            }
+            return true;
         },
 
         async loadOrgs() {
@@ -688,13 +724,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnForgotPassword = document.getElementById('btnForgotPassword');
     const authError = document.getElementById('authError');
     const logoutBtn = document.getElementById('logoutBtn');
+    // Variables for Settings (formerly Admin)
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
 
-    // Admin Modal Elements
-    const adminModal = document.getElementById('adminModal');
-    const closeAdminModalBtn = document.getElementById('closeAdminModalBtn');
+    // Admin Section
+    const adminSection = document.getElementById('adminSection');
     const adminOrgName = document.getElementById('adminOrgName');
     const adminOrgCode = document.getElementById('adminOrgCode');
     const adminCreateOrgBtn = document.getElementById('adminCreateOrgBtn');
+
+    // Profile Section
+    const saveProfileBtn = document.getElementById('saveProfileBtn');
+    const triggerResetPasswordBtn = document.getElementById('triggerResetPasswordBtn');
 
     function openAuthModal() {
         if (authModal) setModalState(authModal, true);
@@ -707,12 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateAuthUI() {
         if (user) {
             if (logoutBtn) logoutBtn.classList.remove('hidden');
-            // Admin Check
-            if (user.email === 'mauraluiza015@gmail.com' && settingsBtn) {
-                settingsBtn.classList.remove('hidden');
-            } else if (settingsBtn) {
-                settingsBtn.classList.add('hidden');
-            }
+            if (settingsBtn) settingsBtn.classList.remove('hidden'); // Always show for logged users
         } else {
             if (logoutBtn) logoutBtn.classList.add('hidden');
             if (settingsBtn) settingsBtn.classList.add('hidden');
@@ -722,14 +759,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnSignIn) {
         btnSignIn.addEventListener('click', async () => {
             if (!supabase) return alert('Configure o supabase-config.js primeiro');
-            const email = authEmail.value;
+            let inputLogin = authEmail.value.trim();
             const password = authPassword.value;
+
+            if (!inputLogin || !password) return alert('Preencha login e senha');
+
             authError.style.display = 'none';
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                authError.textContent = error.message;
-                authError.style.display = 'block';
+
+            let emailToUse = inputLogin;
+
+            // Check if input looks like email
+            if (!inputLogin.includes('@')) {
+                // Assume username -> Lookup Email
+                const { data, error } = await supabase.rpc('get_email_by_username', { p_username: inputLogin });
+                if (error || !data || data.length === 0) {
+                    authError.textContent = 'Usuário não encontrado.';
+                    authError.style.display = 'block';
+                    return;
+                }
+                emailToUse = data[0].email; // Extract email from row
             }
+
+            const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
             if (error) {
                 authError.textContent = error.message;
                 authError.style.display = 'block';
@@ -1006,17 +1057,68 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-
-    // Admin Settings Actions
+    // Settings / Admin Actions
     if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => {
-            if (adminModal) setModalState(adminModal, true);
+        settingsBtn.addEventListener('click', async () => {
+            // 1. Show modal
+            if (settingsModal) setModalState(settingsModal, true);
+
+            // 2. Toggle Admin Section
+            if (user && user.email === 'mauraluiza015@gmail.com') {
+                adminSection.classList.remove('hidden');
+            } else {
+                adminSection.classList.add('hidden');
+            }
+
+            // 3. Refresh Profile Data
+            await DB.loadProfile();
         });
     }
 
-    if (closeAdminModalBtn) {
-        closeAdminModalBtn.addEventListener('click', () => {
-            if (adminModal) setModalState(adminModal, false);
+    if (closeSettingsModalBtn) {
+        closeSettingsModalBtn.addEventListener('click', () => {
+            if (settingsModal) setModalState(settingsModal, false);
+        });
+    }
+
+    // Save Profile
+    if (saveProfileBtn) {
+        saveProfileBtn.addEventListener('click', async () => {
+            const username = document.getElementById('profileUsername').value.trim();
+            const first_name = document.getElementById('profileFirstName').value.trim();
+            const last_name = document.getElementById('profileLastName').value.trim();
+            const nickname = document.getElementById('profileNickname').value.trim();
+            const birth_date = document.getElementById('profileBirthDate').value;
+
+            if (username.length > 0 && username.length < 3) return alert('Nome de usuário muito curto.');
+
+            const success = await DB.saveProfile({
+                username: username || null,
+                first_name,
+                last_name,
+                nickname,
+                birth_date: birth_date || null
+            });
+
+            if (success) {
+                alert('Perfil atualizado!');
+                // Could update UI elsewhere if nickname is used in header
+            }
+        });
+    }
+
+    // Password Reset Trigger
+    if (triggerResetPasswordBtn) {
+        triggerResetPasswordBtn.addEventListener('click', async () => {
+            if (!user || !user.email) return;
+            const confirm = await showCustomConfirm('Redefinir Senha', `Enviar email de redefinição para ${user.email}?`);
+            if (confirm) {
+                const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                    redirectTo: window.location.href,
+                });
+                if (error) alert('Erro: ' + error.message);
+                else alert('Email enviado! Verifique sua caixa de entrada.');
+            }
         });
     }
 
