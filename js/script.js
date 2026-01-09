@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeModalBtn = document.getElementById('closeModalBtn');
     const modalTitleInput = document.getElementById('modalTitleInput');
     const modalFolderSelect = document.getElementById('modalFolderSelect');
+    const modalShareSelect = document.getElementById('modalShareSelect'); // New
     const modalPrioritySelect = document.getElementById('modalPrioritySelect');
     const modalDueDateInput = document.getElementById('modalDueDateInput');
     const modalTicketInput = document.getElementById('modalTicketInput');
@@ -596,26 +597,77 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
         },
 
-        async addTask(task) {
+        async loadTaskParticipants(taskId) {
+            if (!user) return [];
+            const { data, error } = await supabase.from('task_participants').select('user_id').eq('task_id', taskId);
+            if (error) return [];
+            return data.map(r => r.user_id);
+        },
+
+        async saveTaskParticipants(taskId, userIds) {
+            if (!user) return;
+            // Diffing could be optimized, but full delete/insert is safe for small numbers (max 50 users usually)
+
+            // 1. Delete all for this task (simplest way to sync) - Constraint: Only owner can do this. 
+            // We rely on RLS. If we are just editing, we might be a participant trying to save. 
+            // WAIT - Participants can EDIT task, but ONLY OWNER can manage participants per requirements?
+            // "o usuario que cria a tarefa deve ficar como criador e ele pode selecionar outros usuarios..."
+            // Usually only creator manages sharing.
+
+            // So we check if AM OWNER?
+            // Actually, let's catch error. If RLS blocks, we just don't save participants.
+
+            // For safety, let's check ownership before trying, or just try.
+            // But wait, if I am a participant editing the description, this 'saveTask' runs. 
+            // If I pass 'userIds' as current list, I might trigger a delete/insert I have no permission for.
+
+            // OPTIMIZATION: Check if I am the owner of the task (we can check task object). 
+            // We'll pass the task object to DB.saveTask, so we can check `task.userId`.
+
+            await supabase.from('task_participants').delete().eq('task_id', taskId);
+
+            if (userIds.length > 0) {
+                const rows = userIds.map(uid => ({ task_id: taskId, user_id: uid }));
+                await supabase.from('task_participants').insert(rows);
+            }
+        },
+
+        async getOrgMembersRPC(orgId) {
+            const { data, error } = await supabase.rpc('get_org_members', { p_org_id: orgId });
+            if (error) { console.error(error); return []; }
+            return data || [];
+        },
+
+        async addTask(task, participantIds = []) {
             if (user) {
                 const dbTask = mapTaskToDB(task);
                 if (currentOrg) dbTask.organization_id = currentOrg.id;
 
                 const { data, error } = await supabase.from('tasks').insert(dbTask).select().single();
-                if (data) return mapDBToTask(data);
+                if (data) {
+                    const savedTask = mapDBToTask(data);
+                    // Save participants
+                    if (participantIds.length > 0) {
+                        await this.saveTaskParticipants(savedTask.id, participantIds);
+                    }
+                    return savedTask;
+                }
                 if (error) { alert('Erro ao salvar no banco: ' + error.message); return task; }
             } else {
-                return task; // Local save is handled by full array save
+                return task;
             }
         },
 
-        async updateTask(task) {
+        async updateTask(task, participantIds = null) {
             if (user) {
                 const dbTask = mapTaskToDB(task);
-                // Keep existing org_id or use current? Usually tasks don't move orgs simply by edit.
-                // We rely on RLS preventing move if not allowed.
                 const { error } = await supabase.from('tasks').update(dbTask).eq('id', task.id);
                 if (error) alert('Erro ao atualizar: ' + error.message);
+
+                // Only update participants if passed (and if owner - managed by logic calling this)
+                if (participantIds !== null && task.userId === user.id) {
+                    await this.saveTaskParticipants(task.id, participantIds);
+                }
             }
         },
 
@@ -688,7 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function mapTaskToDB(t) {
         return {
             id: t.id,
-            user_id: user.id,
+            user_id: t.userId || user.id, // Use existing userId if present, otherwise current user
             title: t.title,
             description: t.desc, // HTML (Base64 included) -> Renamed to avoid keyword
             folder_id: t.folderId || null, // FIX: Send NULL if empty string to satisfy Foreign Key
@@ -705,12 +757,13 @@ document.addEventListener('DOMContentLoaded', () => {
     function mapDBToTask(dbT) {
         return {
             ...dbT,
-            desc: dbT.description, // Map back to internal 'desc'
+            desc: dbT.description,
             folderId: dbT.folder_id,
             richDesc: true,
             dueDate: dbT.due_date,
             createdAt: dbT.created_at,
-            deletedAt: dbT.deleted_at
+            deletedAt: dbT.deleted_at,
+            userId: dbT.user_id // Capture owner ID
         };
     }
 
@@ -1141,24 +1194,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Modal / Task Actions
-    newTaskBtn.addEventListener('click', () => openModal());
+    newTaskBtn.addEventListener('click', () => openModal()); // New task
     closeModalBtn.addEventListener('click', closeModal);
     modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) closeModal();
     });
 
-    modalSaveBtn.addEventListener('click', saveCurrentTask);
+    // modalSaveBtn.addEventListener('click', saveCurrentTask); // Replaced by new logic below
 
-    modalDeleteBtn.addEventListener('click', () => {
-        if (!currentTaskId) return;
-        // Logic depends if it's already in trash or not
-        const task = tasks.find(t => t.id === currentTaskId);
-        if (task.deletedAt) {
-            destroyTask(currentTaskId);
-        } else {
-            softDeleteTask(currentTaskId);
-        }
-    });
+    // modalDeleteBtn.addEventListener('click', () => { // Replaced by new logic below
+    //     if (!currentTaskId) return;
+    //     // Logic depends if it's already in trash or not
+    //     const task = tasks.find(t => t.id === currentTaskId);
+    //     if (task.deletedAt) {
+    //         destroyTask(currentTaskId);
+    //     } else {
+    //         softDeleteTask(currentTaskId);
+    //     }
+    // });
 
     // --- Core Functions ---
 
@@ -1216,109 +1269,193 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Modal Logic ---
 
-    function openModal(taskId = null) {
-        currentTaskId = taskId;
+    async function openModal(taskParam = null) {
+        setModalState(modalOverlay, true);
 
-        if (taskId) {
-            // Edit Mode
-            const task = tasks.find(t => t.id === taskId);
-            if (!task) return;
+        // Load Folders Options
+        modalFolderSelect.innerHTML = '<option value="">Sem pasta</option>';
+        folders.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.name;
+            modalFolderSelect.appendChild(opt);
+        });
 
-            modalTitleInput.value = task.title;
-            // Set Quill content
-            if (task.richDesc) {
-                quill.root.innerHTML = task.desc || '';
-            } else {
-                quill.setText(task.desc || '');
+        // Load Members for Sharing (If in Org)
+        let orgMembers = [];
+        let existingParticipants = [];
+        const isOwner = !taskParam || (taskParam && taskParam.userId === user?.id);
+
+        if (currentOrg && user) {
+            orgMembers = await DB.getOrgMembersRPC(currentOrg.id);
+            // exclude self
+            orgMembers = orgMembers.filter(m => m.user_id !== user.id);
+
+            if (taskParam) {
+                existingParticipants = await DB.loadTaskParticipants(taskParam.id);
             }
+        }
+        renderShareSelect(orgMembers, existingParticipants, isOwner);
 
-            modalFolderSelect.value = task.folderId || '';
-            modalPrioritySelect.value = task.priority || 'normal';
-            modalDueDateInput.value = task.dueDate || '';
-            modalTicketInput.value = task.ticket || '';
+        if (taskParam) {
+            currentTaskId = taskParam.id;
+            modalTitleInput.value = taskParam.title;
+            // quill.root.innerHTML = taskParam.desc; 
+            // Delta support or HTML fallback
+            // For simplicty in this refactor, assume HTML string
+            quill.clipboard.dangerouslyPasteHTML(taskParam.desc);
 
-            const dateStr = new Date(task.createdAt).toLocaleDateString();
-            modalDateInfo.textContent = `Criado em ${dateStr}`;
+            modalFolderSelect.value = taskParam.folderId || '';
+            modalPrioritySelect.value = taskParam.priority;
+            modalDueDateInput.value = taskParam.dueDate ? taskParam.dueDate.split('T')[0] : '';
+            modalTicketInput.value = taskParam.ticket || '';
+
+            const d = new Date(taskParam.createdAt);
+            modalDateInfo.textContent = `Criado em ${d.toLocaleDateString()} às ${d.toLocaleTimeString()}`;
 
             modalDeleteBtn.classList.remove('hidden');
-            if (task.deletedAt) modalDeleteBtn.textContent = 'Excluir Permanentemente';
-            else modalDeleteBtn.textContent = 'Mover para Lixeira';
+            // Hide delete if not owner
+            if (!isOwner) modalDeleteBtn.classList.add('hidden');
+            else modalDeleteBtn.classList.remove('hidden');
 
+            modalDeleteBtn.onclick = () => {
+                if (!currentTaskId) return;
+                const task = tasks.find(t => t.id === currentTaskId);
+                if (task.deletedAt) {
+                    destroyTask(currentTaskId);
+                } else {
+                    softDeleteTask(currentTaskId);
+                }
+            };
         } else {
-            // Create Mode
+            currentTaskId = null;
             modalTitleInput.value = '';
             quill.setText('');
             modalFolderSelect.value = activeFolderId !== 'all' ? activeFolderId : '';
             modalPrioritySelect.value = 'low';
             modalDueDateInput.value = '';
             modalTicketInput.value = '';
-            modalDateInfo.textContent = 'Nova tarefa';
+            modalDateInfo.textContent = '';
             modalDeleteBtn.classList.add('hidden');
         }
+    }
 
-        if (!taskId) modalTitleInput.focus();
-        setModalState(modalOverlay, true);
+    function renderShareSelect(members, selectedIds, isOwner) {
+        modalShareSelect.innerHTML = '';
+        const container = modalShareSelect;
+
+        if (!currentOrg) {
+            container.innerHTML = '<small style="color:var(--text-muted);">Disponível apenas em Organizações</small>';
+            return;
+        }
+
+        if (members.length === 0) {
+            container.innerHTML = '<small style="color:var(--text-muted);">Nenhum outro membro na organização.</small>';
+            return;
+        }
+
+        // Logic: Only owner can edit sharing.
+        // If not owner, just list names read-only? 
+        // "o usuario que cria a tarefa... pode selecionar outros usuarios"
+        // Implies only creator controls this.
+        if (!isOwner) {
+            // Show read-only list
+            const selectedMembers = members.filter(m => selectedIds.includes(m.user_id));
+            if (selectedMembers.length === 0) {
+                container.innerHTML = '<small style="color:var(--text-muted);">Não compartilhado.</small>';
+            } else {
+                selectedMembers.forEach(m => {
+                    const div = document.createElement('div');
+                    div.textContent = `👤 ${m.username || m.email}`;
+                    div.style.fontSize = '0.85rem';
+                    div.style.marginBottom = '2px';
+                    container.appendChild(div);
+                });
+            }
+            return;
+        }
+
+        members.forEach(m => {
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '8px';
+            label.style.padding = '4px 0';
+            label.style.cursor = 'pointer';
+
+            const kb = document.createElement('input');
+            kb.type = 'checkbox';
+            kb.value = m.user_id;
+            if (selectedIds.includes(m.user_id)) kb.checked = true;
+
+            const span = document.createElement('span');
+            span.textContent = m.username ? `${m.username}` : m.email; // Pref name
+            span.style.fontSize = '0.9rem';
+
+            label.appendChild(kb);
+            label.appendChild(span);
+            container.appendChild(label);
+        });
     }
 
     function closeModal() {
         setModalState(modalOverlay, false);
-        currentTaskId = null;
     }
 
-    async function saveCurrentTask() {
-        const title = modalTitleInput.value.trim();
-        if (!title) { modalTitleInput.focus(); return; }
-
-        const htmlContent = quill.root.innerHTML; // contains tags
+    // Save Task
+    modalSaveBtn.addEventListener('click', async () => {
+        const title = modalTitleInput.value;
+        const desc = quill.root.innerHTML;
         const folderId = modalFolderSelect.value;
         const priority = modalPrioritySelect.value;
         const dueDate = modalDueDateInput.value;
-        const ticket = modalTicketInput.value.trim();
+        const ticket = modalTicketInput.value;
+
+        if (!title.trim()) return alert('Título é obrigatório');
+
+        // Collect Participants
+        const checkboxes = modalShareSelect.querySelectorAll('input[type="checkbox"]:checked');
+        const participantIds = Array.from(checkboxes).map(cb => cb.value);
+
+        const taskData = {
+            title,
+            desc,
+            folderId,
+            priority,
+            dueDate,
+            ticket,
+            userId: user ? user.id : null // Ensure userId is carried for local
+        };
 
         if (currentTaskId) {
-            // Update Array
-            let updatedTaskRef = null;
-            tasks = tasks.map(t => {
-                if (t.id === currentTaskId) {
-                    updatedTaskRef = { ...t, title, desc: htmlContent, richDesc: true, folderId, priority, dueDate, ticket, updatedAt: new Date().toISOString() };
-                    return updatedTaskRef;
-                }
-                return t;
-            });
-
-            // Update DB
-            if (updatedTaskRef) {
-                await DB.updateTask(updatedTaskRef);
+            // Update
+            taskData.id = currentTaskId;
+            // Preserve creation date
+            const existing = tasks.find(t => t.id === currentTaskId);
+            if (existing) {
+                taskData.createdAt = existing.createdAt;
+                taskData.userId = existing.userId;
             }
 
-        } else {
-            // New Task
-            const newTask = {
-                id: Date.now(),
-                title,
-                desc: htmlContent,
-                richDesc: true,
-                folderId,
-                priority,
-                dueDate,
-                ticket,
-                completed: false,
-                createdAt: new Date().toISOString()
-            };
-            tasks.unshift(newTask);
+            await DB.updateTask(taskData, participantIds);
 
-            // Add to DB
-            // We might want to wait for ID from DB if we used generated IDs, but we use timestamps/client-IDs for simplicity now.
-            // If using BigInt in DB, we need to be careful. JS Date.now() fits in BigInt.
-            const savedTask = await DB.addTask(newTask);
-            // If DB returns a new object (e.g. with server timestamp), we should update our local state.
-            // But let's trust our optimistic UI for now or sync later.
+            // Local update
+            const idx = tasks.findIndex(t => t.id === currentTaskId);
+            if (idx !== -1) tasks[idx] = { ...tasks[idx], ...taskData };
+
+        } else {
+            // Create
+            taskData.id = Date.now(); // Temp ID, DB replaces
+            taskData.createdAt = new Date().toISOString();
+            taskData.completed = false;
+
+            const newT = await DB.addTask(taskData, participantIds);
+            tasks.unshift(newT);
         }
 
-        saveTasks();
         renderTasks();
         closeModal();
-    }
+    });
     // --- Global Actions ---
     window.selectFolder = (id) => {
         activeFolderId = id;
