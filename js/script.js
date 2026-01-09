@@ -1092,8 +1092,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!user) return alert('Faça login primeiro.');
             const code = await showCustomPrompt('Entrar em Organização', '', 'Código da organização');
             if (code) {
-                const { data: org, error } = await supabase.from('organizations').select('id, name').eq('code', code).single();
-                if (error || !org) return alert('Organização não encontrada para este código.');
+                // Use RPC to bypass RLS (Non-members can't select from table directly)
+                const { data, error } = await supabase.rpc('get_org_by_code', { p_code: code });
+
+                if (error || !data || data.length === 0) return alert('Organização não encontrada para este código.');
+
+                const org = data[0]; // RPC returns array of rows
 
                 const { error: joinError } = await supabase.from('organization_members').insert({
                     organization_id: org.id,
