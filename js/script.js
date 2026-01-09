@@ -612,6 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         dueDate: t.due_date,
                         createdAt: t.created_at,
                         deletedAt: t.deleted_at,
+                        userId: t.user_id, // Vital for isOwner check
                         creatorName: 'Usuário' // Placeholder until join is restored
                     }));
                 }
