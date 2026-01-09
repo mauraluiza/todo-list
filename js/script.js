@@ -1732,23 +1732,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log('Rendering Org Switcher. Orgs:', myOrgs);
 
-        if (myOrgs.length === 0) {
-            const opt = document.createElement('option');
-            opt.text = "Sem Organização";
-            orgSelect.appendChild(opt);
-            orgSelect.disabled = true;
-            return;
-        }
-        orgSelect.disabled = false;
+        // Option: Personal
+        const optPersonal = document.createElement('option');
+        optPersonal.value = 'personal';
+        optPersonal.textContent = 'Pessoal (Offline)';
+        if (!currentOrg) optPersonal.selected = true;
+        orgSelect.appendChild(optPersonal);
 
-        myOrgs.forEach(org => {
-            const opt = document.createElement('option');
-            opt.value = org.id;
-            opt.textContent = org.name || 'Sem Nome'; // Fallback
-            console.log('Adicionando opção:', org.name, org.id);
-            if (currentOrg && currentOrg.id === org.id) opt.selected = true;
-            orgSelect.appendChild(opt);
-        });
+        if (myOrgs.length > 0) {
+            const grp = document.createElement('optgroup');
+            grp.label = "Minhas Organizações";
+            myOrgs.forEach(org => {
+                const opt = document.createElement('option');
+                opt.value = org.id;
+                opt.textContent = org.name || 'Sem Nome';
+                if (currentOrg && currentOrg.id === org.id) opt.selected = true;
+                grp.appendChild(opt);
+            });
+            orgSelect.appendChild(grp);
+        }
+
+        orgSelect.disabled = false;
     }
 
     function escapeHtml(text) {
