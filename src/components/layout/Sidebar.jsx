@@ -5,6 +5,7 @@ import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { Input } from "../ui/input"
 import { ChevronDown, Plus, LogOut, LayoutList, Settings, User } from "lucide-react"
+import { ModeToggle } from "../ModeToggle"
 
 export function Sidebar({ activeView, onViewChange }) {
     const { user, signOut } = useAuth()
@@ -62,8 +63,11 @@ export function Sidebar({ activeView, onViewChange }) {
 
             {/* Footer */}
             <div className="p-4 border-t space-y-2">
-                <div className="text-xs text-muted-foreground px-2 pb-2">
-                    {user?.email}
+                <div className="flex items-center justify-between px-2 pb-2">
+                    <span className="text-xs text-muted-foreground truncate max-w-[120px]" title={user?.email}>
+                        {user?.email}
+                    </span>
+                    <ModeToggle />
                 </div>
                 <Button variant="ghost" className="w-full justify-start" onClick={() => {/* Settings */ }}>
                     <Settings className="mr-2 h-4 w-4" /> Configurações

@@ -52,8 +52,12 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-background p-4">
-            <div className="w-full max-w-md space-y-8 rounded-2xl border bg-card p-10 shadow-lg animate-in fade-in zoom-in duration-500">
+        <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
+            {/* Background Glow Effects */}
+            <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-purple-500/20 blur-[120px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] h-[500px] w-[500px] rounded-full bg-green-500/10 blur-[120px]" />
+
+            <div className="relative z-10 w-full max-w-md space-y-8 rounded-2xl border bg-card/50 backdrop-blur-sm p-10 shadow-lg animate-in fade-in zoom-in duration-500">
                 <div className="text-center">
                     <h2 className="mt-6 text-3xl font-bold tracking-tight text-foreground">
                         {isLogin ? "Bem-vindo de volta" : "Criar conta"}
