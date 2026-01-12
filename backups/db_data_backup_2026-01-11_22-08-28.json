@@ -1,0 +1,251 @@
+{
+  "folders": [
+    {
+      "id": "f_1767727744765",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "name": "CRM",
+      "created_at": "2026-01-06T19:29:03.381Z",
+      "organization_id": null
+    },
+    {
+      "id": "f_1767963591418",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "name": "pasta-usuario",
+      "created_at": "2026-01-09T12:59:50.999Z",
+      "organization_id": null
+    }
+  ],
+  "tasks": [
+    {
+      "id": "1767981518063",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "organização teste",
+      "description": "<p><br></p>",
+      "folder_id": null,
+      "priority": "low",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T17:58:38.063Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e"
+    },
+    {
+      "id": "1767983215738",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "title": "teste persistencia",
+      "description": "<p><br></p>",
+      "folder_id": null,
+      "priority": "low",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:26:55.738Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e"
+    },
+    {
+      "id": "1767983757385",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "title": "teste offline",
+      "description": "<p><br></p>",
+      "folder_id": "f_1767963591418",
+      "priority": "low",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:35:57.385Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": null
+    },
+    {
+      "id": "1767984480764",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "title": "criador org",
+      "description": "<p><br></p>",
+      "folder_id": null,
+      "priority": "low",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:48:00.764Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e"
+    },
+    {
+      "id": "1767984658736",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "title": "cadeeeeeee",
+      "description": "<p><br></p>",
+      "folder_id": null,
+      "priority": "urgente",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:50:58.736Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e"
+    },
+    {
+      "id": "1767985037458",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "criar serviço de transcrição para sair do n8n",
+      "description": "<p><br></p>",
+      "folder_id": "f_1767727744765",
+      "priority": "normal",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:57:17.458Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": null
+    },
+    {
+      "id": "1767985516315",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "???",
+      "description": "<p><br></p>",
+      "folder_id": null,
+      "priority": "low",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T19:05:16.315Z",
+      "updated_at": null,
+      "deleted_at": "2026-01-09T19:26:47.973Z",
+      "organization_id": null
+    },
+    {
+      "id": "1767985064133",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "atualizar link do grupo de promoções",
+      "description": "<p><br></p>",
+      "folder_id": "f_1767727744765",
+      "priority": "normal",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:57:44.133Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": null
+    },
+    {
+      "id": "1767986925706",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "colocar neva para fazer rascunho",
+      "description": "<p><br></p>",
+      "folder_id": "f_1767727744765",
+      "priority": "normal",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T19:28:45.706Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": null
+    },
+    {
+      "id": "1767986970987",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": " remover texto de pergunta se tem whats ou email",
+      "description": "<p><br></p>",
+      "folder_id": "f_1767727744765",
+      "priority": "normal",
+      "status": "pending",
+      "completed": false,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T19:29:30.987Z",
+      "updated_at": null,
+      "deleted_at": null,
+      "organization_id": null
+    },
+    {
+      "id": "1767982626186",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "title": "undefined",
+      "description": "<p>uai</p>",
+      "folder_id": null,
+      "priority": "low",
+      "status": "completed",
+      "completed": true,
+      "due_date": null,
+      "ticket": "",
+      "created_at": "2026-01-09T18:17:06.186Z",
+      "updated_at": null,
+      "deleted_at": "2026-01-11T21:45:51.380Z",
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e"
+    }
+  ],
+  "organizations": [
+    {
+      "id": "60466d36-2c76-43ad-b4c9-9a99e5a40feb",
+      "name": "Organização Maura",
+      "code": "admin-maura",
+      "created_at": "2026-01-09T14:08:31.085Z"
+    },
+    {
+      "id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e",
+      "name": "teste",
+      "code": "org-teste",
+      "created_at": "2026-01-09T14:55:47.732Z"
+    }
+  ],
+  "organization_members": [
+    {
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "role": "admin",
+      "created_at": "2026-01-09T14:55:47.969Z"
+    },
+    {
+      "organization_id": "60466d36-2c76-43ad-b4c9-9a99e5a40feb",
+      "user_id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "role": "member",
+      "created_at": "2026-01-09T15:47:00.568Z"
+    },
+    {
+      "organization_id": "44ced3e4-0ead-46fc-a57a-03814d5b1f8e",
+      "user_id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "role": "member",
+      "created_at": "2026-01-09T17:10:50.091Z"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "0ed0d9e8-f423-46dc-afb5-3c6dff94c690",
+      "username": "mauraluiza",
+      "first_name": "",
+      "last_name": "",
+      "nickname": "",
+      "birth_date": null,
+      "updated_at": "2026-01-09T14:40:08.271Z"
+    },
+    {
+      "id": "5279003a-db55-4df6-89df-ffed506ebf74",
+      "username": "maurateste",
+      "first_name": "",
+      "last_name": "",
+      "nickname": "",
+      "birth_date": null,
+      "updated_at": "2026-01-09T14:45:06.085Z"
+    }
+  ],
+  "task_participants": []
+}

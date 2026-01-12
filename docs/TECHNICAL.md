@@ -1,87 +1,98 @@
 # Documentação Técnica - To-Do List Application
 
-## 📐 Arquitetura Híbrida
+> **⚠️ NOTA PARA DESENVOLVEDORES:** Este documento reflete a arquitetura atualizada para **React (Vite) + Supabase Multi-Tenant V2**.
 
-O sistema utiliza um padrão **Abstracted Data Layer (Camada de Dados Abstraída)**, permitindo operar em dois modos:
+## 📐 Arquitetura do Sistema
 
-1.  **Modo Offline (Default):** Utiliza `LocalStorage` do navegador persistindo arrays `tasks` e `folders`.
-2.  **Modo Nuvem (Supabase):** Utiliza PostgreSQL e Auth via API, ativado automaticamente quando as credenciais são detectadas em `js/supabase-config.js` e há uma sessão ativa.
+O sistema foi refatorado de uma SPA Vanilla JS para uma aplicação **React modular** baseada em Componentes e Hooks.
 
-### Fluxo de Inicialização (`js/script.js`)
-1.  **Boot:** `DOMContentLoaded` lê `window.supabase`.
-2.  **Verificação:** `DB.init()` verifica sessão (`supabase.auth.getSession`).
-3.  **Auth UI:** Se configurado mas não logado, abre o modal de login.
-4.  **Carga de Dados:** `DB.loadAll()` popula os arrays globais, priorizando a nuvem se logado.
-
----
-
-## 📂 Estrutura do Projeto
-
-A organização de diretórios segue responsabilidades claras:
-
-*   **`js/`**: Lógica da aplicação (`script.js`) e configurações de ambiente (`supabase-config.js`).
-*   **`css/`**: Estilos globais e variáveis de tema.
-*   **`docs/`**: Documentação técnica e planos de teste.
-*   **`database/`**:
-    *   `migrations/`: Histórico de scripts SQL aplicados ao Supabase.
-    *   `scripts/`: Utilitários SQL (e.g., limpeza de testes).
-*   **`supabase/`**: Configurações da CLI do Supabase (opcional).
-*   **`index.html`**: Ponto de entrada da aplicação.
+### Principais Componentes e Contextos
+1.  **`AuthContext`**: Gerencia o estado de autenticação do usuário (Supabase Auth).
+2.  **`WorkspaceContext` (**NOVO**)**:
+    - Gerencia o contexto de **Multi-tenancy**.
+    - Mantém o `currentWorkspace`. Se `null`, o usuário está no contexto **Pessoal**. Se preenchido, está em uma **Organização**.
+    - Expõe métodos para `createWorkspace`, `joinWorkspace`.
+3.  **Hooks de Dados (`useTodos`, `useLists`)**:
+    - Abstraem o fetching de dados.
+    - **Crucial**: Ouvem o `currentWorkspace` e filtram automaticamente todas as queries por `workspace_id`.
+    - Isso garante o isolamento total de dados entre ambientes Pessoal e Organizacional no frontend.
 
 ---
 
-## 🗂️ Implementação de Interfaces (UI/UX)
+## 💾 Schema do Banco de Dados (Supabase V2)
 
-### 1. Transições Suaves (Smooth Modals)
-A aplicação utiliza um sistema de classes CSS para gerenciar estados de animação, substituindo keyframes rígidos por transições fluidas.
-- **Helper:** `setModalState(modal, isOpen)` em `js/script.js`.
-- **Lógica:**
-    - **Open:** Remove `.hidden`, força reflow (`void modal.offsetWidth`), adiciona `.visible` (trigger opacity: 1, backdrop-filter: 8px).
-    - **Close:** Remove `.visible` (fade out), aguarda `transitionend` (400ms setTimeout), adiciona `.hidden`.
+O schema do banco (definido em `database/v2_schema_setup.sql`) suporta multi-tenancy e colaboração.
 
-### 2. Modais Customizados
-Substituição de `alert/prompt` nativos por modais estilizados baseados em Promises:
-- **`showCustomPrompt(title, default, placeholder)`:** Retorna Promise<String>. Suporta placeholder para instruções UX sem sujar o valor inicial.
-- **`showCustomConfirm(title, msg)`:** Retorna Promise<Boolean>.
+### Tabelas Principais
 
----
+#### 1. `todos` (Tarefas)
+Tabela central de tarefas.
+- `id` (uuid): PK.
+- `title` (text): Título.
+- `description` (text): **Rich Text (HTML)** salvo do ReactQuill.
+- `workspace_id` (uuid, nullable):
+    - `NULL` = Tarefa Pessoal.
+    - `UUID` = Tarefa Pertencente a uma Organização.
+- `list_id` (uuid): FK para tabela `lists` (antiga `folders`).
+- `owner_id` (uuid): Criador da tarefa.
+- `assigned_to` (uuid): Responsável pela tarefa.
 
-## 🔐 Controle de Acesso e Segurança
+#### 2. `lists` (Pastas/Listas)
+Agrupadores de tarefas.
+- `workspace_id` (uuid, nullable): Define se a lista é pessoal ou de uma org.
 
-### Autenticação (Supabase Auth)
-- **Login:** Email/Password.
-- **Cadastro Restrito:** Implementado no client-side (`btnSignUp` listener).
-    - Exige código de autorização (`admin-maura`) via `showCustomPrompt`.
-    - Bloqueia chamadas à API `signUp` se o código falhar.
+#### 3. `workspaces` (Organizações)
+- `id` (uuid): PK.
+- `name` (text): Nome da empresa/org.
+- `owner_id` (uuid): Criador.
+- `invite_code` (text): Código único de 6 caracteres para convite.
 
-### Row Level Security (RLS - Banco de Dados)
-Políticas aplicadas nas tabelas `tasks` e `folders`:
-- `SELECT`, `INSERT`, `UPDATE`, `DELETE`: Permitido apenas onde `auth.uid() = user_id`.
-
----
-
-## 💾 Schema do Banco de Dados
-
-**Tabela: `tasks`**
-- `id` (bigint): Timestamp.
-- `user_id` (uuid): FK auth.users.
-- `description` (text): HTML do Quill.js (inclui imagens Base64).
-- `deleted_at` (timestamp): Soft Delete para Lixeira.
-
-**Tabela: `folders`**
-- `id` (text): String customizada (ex: `f_TIMESTAMP`).
-- `user_id` (uuid): FK auth.users.
+#### 4. `profiles` (**NOVO**)
+Tabela auxiliar para metadados de usuário não suportados nativamente pelo `auth.users` ou para lookup rápido.
+- `id` (uuid): PK, referência 1:1 ao `auth.users`.
+- `username` (text): Nome de usuário único para login.
+- `email` (text): Cópia do email para facilitar buscas (ex: login por username).
 
 ---
 
-## 🖼️ Sistema de Imagens
-- **Armazenamento:** Base64 embedado no HTML da task (coluna `description`).
-- **Editor:** Quill.js customizado.
-- **Ferramentas:** Overlay de redimensionamento (`#resize-wrapper`) e menu flutuante de alinhamento injetados dinamicamente no DOM ao clicar na imagem.
+## 🔐 Segurança e RLS (Row Level Security)
+
+As políticas de segurança foram atualizadas para suportar o modelo Multi-Tenant.
+
+- **Tasks/Lists**:
+    - Se `workspace_id` é NULL: Usuário só vê se `owner_id == auth.uid()`.
+    - Se `workspace_id` existe: Usuário vê se é **Membro** do Workspace (verificado via join na tabela `workspace_members`).
 
 ---
 
-## 📝 Notas de Manutenção
+## 🌟 Funcionalidades Específicas implementation
 
-1. **Placeholders em Prompts:** Ao usar `showCustomPrompt` para instruções que não devem ser editadas, passe o texto no terceiro argumento (`placeholder`).
-2. **Mappers:** O frontend usa `camelCase` (`desc`, `folderId`), o banco usa `snake_case` (`description`, `folder_id`). Mappers em `script.js` cuidam dessa tradução.
+### 1. Login por Username
+O frontend (`AuthWall`) permite input de "Email ou Usuário".
+- Se input não tem `@`: O sistema faz um lookup na tabela `profiles` buscando o `email` associado ao `username`.
+- O login efetivo no Supabase continua sendo via Email/Senha, mas essa abstração é transparente para o usuário.
+
+### 2. Editor de Texto Rico (Rich Text)
+- Biblioteca: `react-quill`.
+- Armazenamento: HTML puro no campo `description` do banco.
+- Sanitização: O React renderiza usando `dangerouslySetInnerHTML`. Cuidado deve ser tomado com XSS se houver input de terceiros não confiáveis, mas o Quill já sanitiza o básico.
+
+### 3. AI Chat (Frontend)
+- **Portal**: A janela de chat é renderizada usando `ReactDOM.createPortal(..., document.body)`.
+- **Posicionamento**: Usa `position: fixed` e cálculo dinâmico (`calc(50% + 240px)`) para se posicionar sempre à direita do modal central.
+- **Interação**: Um `useEffect` observa a abertura do chat e aplica uma transformação CSS (`translateX`) no container do Modal principal, empurrando-o para a esquerda para evitar sobreposição.
+
+---
+
+## ⚠️ Migração e Produção
+
+### Persistência de Dados Antigos
+Se o sistema for atualizado sobre uma base de dados existente:
+1.  As tarefas antigas **não possuem** a coluna `workspace_id` (ou ela será criada como NULL).
+2.  **Comportamento**: Como o sistema trata `workspace_id IS NULL` como "Ambiente Pessoal", **todas as tarefas legadas aparecerão automaticamente no Workspace Pessoal** do usuário. Nenhuma migração de dados complexa é necessária.
+3.  A integridade é mantida pois o RLS continua validando o `owner_id`.
+
+### Deploy
+Ao subir para produção, certifique-se de:
+1.  Rodar o script `database/v2_schema_setup.sql` no SQL Editor do Supabase. Ele é idempotente (`IF NOT EXISTS`), então é seguro rodar múltiplas vezes.
+2.  Configurar as variáveis de ambiente (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) no serviço de hospedagem (Vercel/Netlify).

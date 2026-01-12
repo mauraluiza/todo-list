@@ -1,19 +1,62 @@
-# Maura's To-Do List
+# React + Vite To-Do Application
 
-## 📋 Sobre
-Um aplicativo de tarefas elegante e prático, projetado para organizar seu dia a dia com estilo. Funciona tanto **offline** (no seu navegador) quanto **online** (sincronizado na nuvem), garantindo que suas notas estejam sempre acessíveis.
+This is a modern, responsive To-Do List application built with React, Vite, and Supabase.
 
-## ✨ O que você pode fazer
-- **Criar Tarefas Ricas:** Escreva com negrito, listas e adicione imagens diretamente no texto (com redimensionamento fácil!).
-- **Organizar:** Use pastas e tickets (tags) para categorizar tudo.
-- **Focar:** Defina prioridades (Baixa, Normal, Urgente) e filtre por status.
-- **Personalizar:** Alterne entre Tema Claro e Escuro (Dark Mode) para maior conforto visual.
-- **Sincronizar:** Crie uma conta para salvar seus dados na nuvem e acessar de outros dispositivos.
+## ✨ Features
 
-## 🚀 Como Usar
-1. **Abrir:** Basta abrir o arquivo `index.html` no seu navegador. O app já funciona imediatamente!
-2. **Nuvem (Opcional):** Se quiser sincronizar, clique em "Criar Conta" ou "Entrar".
-3. **Explorar:** Clique em "Nova Tarefa" para começar. Tente colar uma imagem na descrição!
+- **Authentication**: Secure email/password login and registration.
+- **Login via Username**: Option to login with a custom username or email.
+- **Multi-tenancy Workspaces**: 
+  - Manage **Personal Tasks** separately from **Organization Tasks**.
+  - Create new organizations and invite members via code.
+  - Switch contexts seamlessly via the Sidebar selector.
+- **Rich Text Editor**: 
+  - Create tasks with rich formatting (Bold, Italic, Lists, Checklists).
+  - Insert images and links directly into task descriptions.
+- **Organization**:
+  - Organize tasks into **Folders** (formerly Lists).
+  - Filter by status, priority, and folders.
+- **Import/Export**:
+  - **Export** individual tasks to `.txt` or `.html` formats.
+  - **Import** tasks via `.txt` (simple text) or `.html` (rich text) files.
+- **User Settings**:
+  - Defined Username Profile.
+  - Change Password with security checks.
+- **AI Assistant Integration** (Frontend):
+  - Dedicated "AI Chat" interface for future task assistance.
+  - Floating chat window with side-by-side view (shifts task modal for visibility).
 
-## 🛠️ Para Desenvolvedores
-Se você é um desenvolvedor e quer entender o código, consulte o arquivo `docs/TECHNICAL.md` na pasta `docs`. Lá estão os detalhes sobre o banco de dados, arquitetura e configurações.
+## 🚀 Technology Stack
+
+- **Frontend**: React, Vite
+- **Styling**: Vanilla CSS (Variables, Dark/Light Mode support)
+- **Editor**: ReactQuill (Rich Text)
+- **Backend**: Supabase (PostgreSQL, Auth, RLS)
+- **Icons**: Emoji-based UI
+
+## 🛠 Setup & Installation
+
+1.  Clone the repository.
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Set up environment variables by copying `.env.example` to `.env` (requires VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY).
+4.  Run the development server:
+    ```bash
+    npm run dev
+    ```
+
+## 📦 Database Schema
+
+The application relies on a robust PostgreSQL schema handled by Supabase.
+See `docs/TECHNICAL.md` for detailed schema and architectural decisions.
+Main tables: `todos`, `workspaces`, `lists`, `profiles`.
+
+## 🎨 Design System
+
+The app follows a "Glassmorphism" inspired design with:
+- Translucent modals and cards.
+- Blurred backgrounds (`backdrop-filter`).
+- Smooth transitions and micro-interactions (hover effects, modal shifts).
+- Adaptive Dark/Light themes.
