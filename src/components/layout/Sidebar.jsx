@@ -1,197 +1,77 @@
-import React, { useState } from 'react'
-import { Modal } from '../common/Modal.jsx'
-import { ListForm } from './ListForm.jsx'
-import { SettingsModal } from '../settings/SettingsModal.jsx' // IMPORT SettingsModal
-import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { supabase } from '../../lib/supabaseClient'
+import { useState } from "react"
+import { useAuth } from "../AuthProvider"
+import { useWorkspace } from "../WorkspaceProvider"
+import { Button } from "../ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { Input } from "../ui/input"
+import { ChevronDown, Plus, LogOut, LayoutList, Settings, User } from "lucide-react"
 
-export function Sidebar({ activeFolder, onFolderChange, customLists = [], onListCreated }) {
-    const { currentWorkspace, setCurrentWorkspace, myWorkspaces, createWorkspace, joinWorkspace } = useWorkspace()
-    const [isListModalOpen, setIsListModalOpen] = useState(false)
-    const [isOrgModalOpen, setIsOrgModalOpen] = useState(false)
-    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false) // NEW
-
-    // Org Form State
-    const [orgMode, setOrgMode] = useState('create') // 'create' | 'join'
-    const [orgInput, setOrgInput] = useState('')
-
-    // System Folders
-    const systemFolders = [
-        { id: 'inbox', label: 'Inbox' }
-    ]
-
-    const handleSaveList = () => {
-        if (onListCreated) onListCreated()
-        setIsListModalOpen(false)
-    }
-
-    const handleOrgSubmit = async (e) => {
-        e.preventDefault()
-        if (!orgInput.trim()) return
-
-        try {
-            if (orgMode === 'create') {
-                await createWorkspace(orgInput)
-                alert('Organização criada!')
-            } else {
-                await joinWorkspace(orgInput)
-            }
-            setIsOrgModalOpen(false)
-            setOrgInput('')
-        } catch (err) {
-            // Error managed in context usually
-        }
-    }
+export function Sidebar({ activeView, onViewChange }) {
+    const { user, signOut } = useAuth()
+    const { workspaces, currentWorkspace, setCurrentWorkspace, createWorkspace, joinWorkspace } = useWorkspace()
 
     return (
-        <>
-            <aside className="sidebar">
-                {/* WORKSPACE SELECTOR */}
-                <div style={{ padding: '0 0 16px 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, fontWeight: 600 }}>
-                        Ambiente
-                    </div>
-                    <select
-                        style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)' }}
-                        value={currentWorkspace ? currentWorkspace.id : 'personal'}
-                        onChange={(e) => {
-                            const val = e.target.value
-                            if (val === 'personal') setCurrentWorkspace(null)
-                            else if (val === 'new_org') {
-                                setOrgMode('create')
-                                setIsOrgModalOpen(true)
-                            }
-                            else if (val === 'join_org') {
-                                setOrgMode('join')
-                                setIsOrgModalOpen(true)
-                            }
-                            else {
-                                const ws = myWorkspaces.find(w => w.id === val)
-                                setCurrentWorkspace(ws)
-                            }
-                        }}
+        <aside className="w-64 border-r bg-card flex flex-col h-screen">
+            {/* Header: User / Workspace Switcher */}
+            <div className="p-4 border-b">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full justify-between">
+                            <span className="truncate">
+                                {currentWorkspace ? currentWorkspace.name : "Pessoal"}
+                            </span>
+                            <ChevronDown className="h-4 w-4 opacity-50" />
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="start">
+                        <DropdownMenuLabel>Ambiente</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => setCurrentWorkspace(null)}>
+                            <User className="mr-2 h-4 w-4" /> Pessoal
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Organizações</DropdownMenuLabel>
+                        {workspaces.map(ws => (
+                            <DropdownMenuItem key={ws.id} onClick={() => setCurrentWorkspace(ws)}>
+                                {ws.name}
+                            </DropdownMenuItem>
+                        ))}
+
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Plus className="mr-2 h-4 w-4" /> Nova Organização...
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+                <div className="space-y-1">
+                    <Button
+                        variant={activeView === 'inbox' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start"
+                        onClick={() => onViewChange('inbox')}
                     >
-                        <option value="personal">👤 Pessoal</option>
-                        <optgroup label="Minhas Organizações">
-                            {myWorkspaces.map(ws => (
-                                <option key={ws.id} value={ws.id}>🏢 {ws.name}</option>
-                            ))}
-                        </optgroup>
-                        <optgroup label="Ações">
-                            <option value="new_org">+ Criar Nova Org...</option>
-                            <option value="join_org">{'->'} Entrar com Código...</option>
-                        </optgroup>
-                    </select>
-                    {currentWorkspace && (
-                        <div style={{ marginTop: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                            Código: <code style={{ background: 'var(--bg-body)', padding: '2px 4px', borderRadius: 4 }}>{currentWorkspace.invite_code}</code>
-                        </div>
-                    )}
+                        <LayoutList className="mr-2 h-4 w-4" />
+                        Inbox
+                    </Button>
+                    {/* Future: Add Lists here */}
                 </div>
+            </nav>
 
-                <div className="sidebar-header" style={{ marginTop: 16 }}>
-                    <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)' }}>
-                        {currentWorkspace ? 'Pastas da Org' : 'Pastas Pessoais'}
-                    </h2>
-                    <button
-                        className="add-folder-btn"
-                        title="Nova Pasta"
-                        onClick={() => setIsListModalOpen(true)}
-                    >
-                        +
-                    </button>
+            {/* Footer */}
+            <div className="p-4 border-t space-y-2">
+                <div className="text-xs text-muted-foreground px-2 pb-2">
+                    {user?.email}
                 </div>
-
-                <div className="folder-list">
-                    {/* System Folders */}
-                    {systemFolders.map(folder => (
-                        <div key={folder.id} className="folder-row">
-                            <button
-                                className={`folder-item ${activeFolder === folder.id ? 'active' : ''}`}
-                                onClick={() => onFolderChange(folder.id)}
-                            >
-                                {folder.label}
-                            </button>
-                        </div>
-                    ))}
-
-                    {/* Divider */}
-                    {customLists.length > 0 && <div style={{ height: '1px', background: 'var(--border)', margin: '8px 0' }}></div>}
-
-                    {/* User Lists */}
-                    {customLists.map(list => (
-                        <div key={list.id} className="folder-row">
-                            <button
-                                className={`folder-item ${activeFolder === list.id ? 'active' : ''}`}
-                                onClick={() => onFolderChange(list.id)}
-                            >
-                                📁 {list.title}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="sidebar-footer">
-                    {/* SETTINGS BUTTON */}
-                    <button
-                        className="sidebar-logout-btn"
-                        onClick={() => setIsSettingsModalOpen(true)}
-                        style={{ marginBottom: 10, background: 'transparent', border: 'none', color: 'var(--text-main)', padding: '12px', justifyContent: 'flex-start' }}
-                    >
-                        <span className="logout-text" style={{ color: 'var(--text-main)' }}>⚙️ Configurações</span>
-                    </button>
-
-                    <button className="sidebar-logout-btn" onClick={async () => {
-                        await supabase.auth.signOut()
-                        window.location.reload()
-                    }}>
-                        <span className="logout-text">Sair</span>
-                    </button>
-                </div>
-            </aside>
-
-            {/* Modal List */}
-            <Modal
-                isOpen={isListModalOpen}
-                onClose={() => setIsListModalOpen(false)}
-                title="Nova Pasta"
-            >
-                <ListForm onClose={() => setIsListModalOpen(false)} onSave={handleSaveList} />
-            </Modal>
-
-            {/* Modal Org */}
-            <Modal
-                isOpen={isOrgModalOpen}
-                onClose={() => setIsOrgModalOpen(false)}
-                title={orgMode === 'create' ? 'Criar Organização' : 'Entrar na Organização'}
-            >
-                <form onSubmit={handleOrgSubmit}>
-                    <div className="modal-body" style={{ padding: 24, gap: 16 }}>
-                        <label>{orgMode === 'create' ? 'Nome da Organização' : 'Código de Convite'}</label>
-                        <input
-                            autoFocus
-                            value={orgInput}
-                            onChange={e => setOrgInput(e.target.value)}
-                            placeholder={orgMode === 'create' ? 'Ex: Empresa X' : 'Informe o código recebido'}
-                            style={{ padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)' }}
-                        />
-                    </div>
-                    <div className="modal-footer">
-                        <button type="submit" className="primary-btn">
-                            {orgMode === 'create' ? 'Criar' : 'Entrar'}
-                        </button>
-                    </div>
-                </form>
-            </Modal>
-
-            {/* Modal Settings */}
-            <Modal
-                isOpen={isSettingsModalOpen}
-                onClose={() => setIsSettingsModalOpen(false)}
-                title="Configurações"
-            >
-                <SettingsModal onClose={() => setIsSettingsModalOpen(false)} />
-            </Modal>
-        </>
+                <Button variant="ghost" className="w-full justify-start" onClick={() => {/* Settings */ }}>
+                    <Settings className="mr-2 h-4 w-4" /> Configurações
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-destructive hover:text-destructive" onClick={signOut}>
+                    <LogOut className="mr-2 h-4 w-4" /> Sair
+                </Button>
+            </div>
+        </aside>
     )
 }

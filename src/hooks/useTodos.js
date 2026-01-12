@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabaseClient'
-import { useAuth } from '../contexts/AuthContext'
-import { useWorkspace } from '../contexts/WorkspaceContext'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../components/AuthProvider'
+import { useWorkspace } from '../components/WorkspaceProvider'
 
-export function useTodos(activeListId, statusFilter) {
+export function useTodos(statusFilter = 'all') {
     const { user } = useAuth()
     const { currentWorkspace } = useWorkspace()
     const [todos, setTodos] = useState([])
@@ -11,7 +11,6 @@ export function useTodos(activeListId, statusFilter) {
 
     const fetchTodos = useCallback(async () => {
         if (!user) return
-
         setLoading(true)
         try {
             let query = supabase
@@ -19,28 +18,22 @@ export function useTodos(activeListId, statusFilter) {
                 .select('*')
                 .order('created_at', { ascending: false })
 
-            // 1. Filter by Workspace (Scope)
+            // Workspace Logic
             if (currentWorkspace) {
                 query = query.eq('workspace_id', currentWorkspace.id)
             } else {
-                query = query.is('workspace_id', null)
+                query = query.is('workspace_id', null).eq('owner_id', user.id)
             }
 
-            // 2. Filter by List
-            if (activeListId === 'inbox') {
-                query = query.is('list_id', null)
-            } else if (activeListId && activeListId !== 'all') {
-                query = query.eq('list_id', activeListId)
-            }
-
-            // 3. Filter by Status/Priority (Tabs)
-            if (statusFilter === 'pending') {
-                query = query.eq('status', 'pending')
-            } else if (statusFilter === 'urgent') {
-                query = query.eq('priority', 'urgent').neq('status', 'completed')
-            } else if (statusFilter === 'completed') {
-                query = query.eq('status', 'completed')
+            // Status Filter Logic
+            if (statusFilter !== 'all') {
+                if (statusFilter === 'archived') {
+                    // maybe handle trash logic
+                } else {
+                    query = query.eq('status', statusFilter)
+                }
             } else {
+                // Filter out archived/trash by default if 'all' means 'active'
                 query = query.neq('status', 'archived')
             }
 
@@ -53,11 +46,39 @@ export function useTodos(activeListId, statusFilter) {
         } finally {
             setLoading(false)
         }
-    }, [user, currentWorkspace, activeListId, statusFilter]) // Add currentWorkspace dependency
+    }, [user, currentWorkspace, statusFilter])
 
     useEffect(() => {
         fetchTodos()
     }, [fetchTodos])
 
-    return { todos, loading, refresh: fetchTodos }
+    const addTodo = async (title, priority = 'medium') => {
+        if (!title.trim()) return
+
+        const payload = {
+            title,
+            priority,
+            status: 'pending',
+            owner_id: user.id,
+            workspace_id: currentWorkspace?.id || null
+        }
+
+        const { error } = await supabase.from('todos').insert(payload)
+        if (!error) fetchTodos()
+        return error
+    }
+
+    const updateTodo = async (id, updates) => {
+        const { error } = await supabase.from('todos').update(updates).eq('id', id)
+        if (!error) fetchTodos()
+        return error
+    }
+
+    const deleteTodo = async (id) => {
+        const { error } = await supabase.from('todos').delete().eq('id', id)
+        if (!error) fetchTodos()
+        return error
+    }
+
+    return { todos, loading, addTodo, updateTodo, deleteTodo, refresh: fetchTodos }
 }
