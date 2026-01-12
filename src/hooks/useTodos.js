@@ -52,11 +52,12 @@ export function useTodos(statusFilter = 'all') {
         fetchTodos()
     }, [fetchTodos])
 
-    const addTodo = async (title, priority = 'medium') => {
+    const addTodo = async ({ title, description = '', priority = 'medium' }) => {
         if (!title.trim()) return
 
         const payload = {
             title,
+            description,
             priority,
             status: 'pending',
             owner_id: user.id,
