@@ -57,8 +57,9 @@ function AuthWall({ children }) {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-body)' }}>
-      <div className="modal-container" style={{ height: 'auto', padding: '40px', maxWidth: '400px' }}>
+    <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-body)', color: 'black' }}>
+      {console.log('Rendering AuthWall. User:', user)}
+      <div className="modal-container" style={{ height: 'auto', padding: '40px', maxWidth: '400px', opacity: 1, transform: 'none' }}>
         <h2 style={{ marginBottom: '20px' }}>{isLogin ? 'Entrar' : 'Cadastrar'}</h2>
         <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input

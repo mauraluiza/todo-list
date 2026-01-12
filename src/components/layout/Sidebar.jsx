@@ -3,6 +3,7 @@ import { Modal } from '../common/Modal.jsx'
 import { ListForm } from './ListForm.jsx'
 import { SettingsModal } from '../settings/SettingsModal.jsx' // IMPORT SettingsModal
 import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { supabase } from '../../lib/supabaseClient'
 
 export function Sidebar({ activeFolder, onFolderChange, customLists = [], onListCreated }) {
     const { currentWorkspace, setCurrentWorkspace, myWorkspaces, createWorkspace, joinWorkspace } = useWorkspace()
@@ -78,7 +79,7 @@ export function Sidebar({ activeFolder, onFolderChange, customLists = [], onList
                         </optgroup>
                         <optgroup label="Ações">
                             <option value="new_org">+ Criar Nova Org...</option>
-                            <option value="join_org">-> Entrar com Código...</option>
+                            <option value="join_org">{'->'} Entrar com Código...</option>
                         </optgroup>
                     </select>
                     {currentWorkspace && (
@@ -140,7 +141,10 @@ export function Sidebar({ activeFolder, onFolderChange, customLists = [], onList
                         <span className="logout-text" style={{ color: 'var(--text-main)' }}>⚙️ Configurações</span>
                     </button>
 
-                    <button className="sidebar-logout-btn" onClick={() => window.location.reload()}>
+                    <button className="sidebar-logout-btn" onClick={async () => {
+                        await supabase.auth.signOut()
+                        window.location.reload()
+                    }}>
                         <span className="logout-text">Sair</span>
                     </button>
                 </div>

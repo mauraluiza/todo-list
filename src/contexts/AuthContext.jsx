@@ -11,6 +11,9 @@ export function AuthProvider({ children }) {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null)
+        }).catch((err) => {
+            console.error('Error fetching session:', err)
+        }).finally(() => {
             setLoading(false)
         })
 
@@ -39,7 +42,11 @@ export function AuthProvider({ children }) {
 
     return (
         <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
-            {!loading && children}
+            {loading ? (
+                <div style={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#222', color: '#fff' }}>
+                    <h1>Carregando aplicação...</h1>
+                </div>
+            ) : children}
         </AuthContext.Provider>
     )
 }

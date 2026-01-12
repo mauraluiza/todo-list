@@ -13,6 +13,7 @@ export function WorkspaceProvider({ children }) {
     const fetchWorkspaces = async () => {
         if (!user) {
             setMyWorkspaces([])
+            setLoading(false)
             return
         }
         try {
