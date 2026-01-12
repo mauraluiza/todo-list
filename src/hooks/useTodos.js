@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../components/AuthProvider'
 import { useWorkspace } from '../components/WorkspaceProvider'
 
-export function useTodos(statusFilter = 'all') {
+export function useTodos(statusFilter = 'all', listId = null) {
     const { user } = useAuth()
     const { currentWorkspace } = useWorkspace()
     const [todos, setTodos] = useState([])
@@ -23,6 +23,11 @@ export function useTodos(statusFilter = 'all') {
                 query = query.eq('workspace_id', currentWorkspace.id)
             } else {
                 query = query.is('workspace_id', null).eq('owner_id', user.id)
+            }
+
+            // List Filter Logic
+            if (listId && listId !== 'all') {
+                query = query.eq('list_id', listId)
             }
 
             // Status Filter Logic
@@ -46,13 +51,13 @@ export function useTodos(statusFilter = 'all') {
         } finally {
             setLoading(false)
         }
-    }, [user, currentWorkspace, statusFilter])
+    }, [user, currentWorkspace, statusFilter, listId])
 
     useEffect(() => {
         fetchTodos()
     }, [fetchTodos])
 
-    const addTodo = async ({ title, description = '', priority = 'medium' }) => {
+    const addTodo = async ({ title, description = '', priority = 'medium', listId = null }) => {
         if (!title.trim()) return
 
         const payload = {
@@ -61,7 +66,8 @@ export function useTodos(statusFilter = 'all') {
             priority,
             status: 'pending',
             owner_id: user.id,
-            workspace_id: currentWorkspace?.id || null
+            workspace_id: currentWorkspace?.id || null,
+            list_id: listId
         }
 
         const { error } = await supabase.from('todos').insert(payload)

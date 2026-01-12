@@ -1,18 +1,30 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Sidebar } from "./Sidebar"
 import { useTodos } from "../../hooks/useTodos"
+import { useLists } from "../../hooks/useLists"
 import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { Check, Trash2, Plus, Info } from "lucide-react"
 import TaskModal from "../TaskModal"
 
 export default function AppShell({ children }) {
-    const [view, setView] = useState("inbox")
-    const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos()
+    const [view, setView] = useState("all")
+    const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos('all', view)
+    const { lists } = useLists()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingTask, setEditingTask] = useState(null)
 
+    const viewTitle = useMemo(() => {
+        if (view === 'all') return 'Todas'
+        const list = lists.find(l => l.id === view)
+        return list ? list.title : 'Todas'
+    }, [view, lists])
+
     const handleCreateTask = async (taskData) => {
+        // If we are currently viewing a specific list, default the new task to that list
+        if (view !== 'all') {
+            taskData.listId = view
+        }
         await addTodo(taskData)
     }
 
@@ -41,7 +53,7 @@ export default function AppShell({ children }) {
                         <header className="flex justify-between items-end">
                             <div>
                                 <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary/90">
-                                    {view === 'inbox' ? 'Inbox' : view}
+                                    {viewTitle}
                                 </h1>
                                 <p className="text-muted-foreground mt-2 text-lg">Suas tarefas e prioridades.</p>
                             </div>
@@ -56,8 +68,8 @@ export default function AppShell({ children }) {
 
                             {!loading && todos.length === 0 && (
                                 <div className="text-center py-20 text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
-                                    <p>Tudo limpo! Aproveite seu dia.</p>
-                                    <Button variant="link" onClick={openForCreate}>Criar primeira tarefa</Button>
+                                    <p>Nenhuma tarefa encontrada nesta lista.</p>
+                                    <Button variant="link" onClick={openForCreate}>Criar tarefa agora</Button>
                                 </div>
                             )}
 
@@ -112,6 +124,7 @@ export default function AppShell({ children }) {
                 onClose={() => setIsModalOpen(false)}
                 task={editingTask}
                 onSave={editingTask ? handleUpdateTask : handleCreateTask}
+                lists={lists}
             />
         </div>
     )
