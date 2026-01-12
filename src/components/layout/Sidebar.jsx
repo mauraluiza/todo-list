@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { useAuth } from "../AuthProvider"
-import { useWorkspace } from "../WorkspaceProvider"
+import { useAuth } from "../../contexts/AuthProvider"
+import { useWorkspace } from "../../contexts/WorkspaceProvider"
 import { useLists } from "../../hooks/useLists"
 import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
@@ -13,7 +13,7 @@ import {
     DialogFooter,
 } from "../ui/dialog"
 import { ChevronDown, Plus, LogOut, LayoutList, Settings, User, Folder, Trash2 } from "lucide-react"
-import { ModeToggle } from "../ModeToggle"
+import { ModeToggle } from "../features/ModeToggle"
 
 export function Sidebar({ activeView, onViewChange }) {
     const { user, signOut } = useAuth()

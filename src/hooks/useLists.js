@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../components/AuthProvider'
-import { useWorkspace } from '../components/WorkspaceProvider'
+import { useAuth } from '../contexts/AuthProvider'
+import { useWorkspace } from '../contexts/WorkspaceProvider'
 
 export function useLists() {
     const { user } = useAuth()

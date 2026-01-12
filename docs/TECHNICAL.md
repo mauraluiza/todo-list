@@ -6,18 +6,25 @@
 
 O sistema foi refatorado de uma SPA Vanilla JS para uma aplicação **React modular** baseada em Componentes e Hooks.
 
-### Principais Componentes e Contextos
-1.  **`AuthContext`**: Gerencia o estado de autenticação do usuário (Supabase Auth).
-2.  **`WorkspaceContext` (**NOVO**)**:
-    - Gerencia o contexto de **Multi-tenancy**.
-    - Mantém o `currentWorkspace`. Se `null`, o usuário está no contexto **Pessoal**. Se preenchido, está em uma **Organização**.
-    - Expõe métodos para `createWorkspace`, `joinWorkspace`.
-3.  **Hooks de Dados (`useTodos`, `useLists`)**:
-    - Abstraem o fetching de dados.
-    - **Crucial**: Ouvem o `currentWorkspace` e filtram automaticamente todas as queries por `workspace_id`.
-    - Isso garante o isolamento total de dados entre ambientes Pessoal e Organizacional no frontend.
+### Estrutura de Diretórios e Componentes
 
----
+A code base foi reorganizada para melhor manutenibilidade:
+
+- **`src/contexts/`**: Contém todos os Providers globais.
+  - `AuthProvider`: Autenticação via Supabase.
+  - `WorkspaceProvider`: Gerenciamento de estado Multi-tenant.
+  - `ThemeProvider`: Controle de tema (dark/light/system).
+  
+- **`src/components/features/`**: Funcionalidades complexas e reutilizáveis.
+  - `RichTextEditor`: Editor de texto baseado em Tiptap.
+  - `TaskModal`: Modal principal de criação/edição de tarefas.
+  - `ModeToggle`: Switch de tema.
+
+- **`src/hooks/`**: Hooks customizados de acesso a dados (`useTodos`, `useLists`).
+  - Esses hooks abstraem a lógica de "Ouvir o Workspace atual" para garantir isolamento de dados.
+
+- **`src/components/ui/`**: Componentes base de interface (Shadcn UI).
+- **`src/components/layout/`**: Componentes estruturais (`AppShell`, `Sidebar`).
 
 ## 💾 Schema do Banco de Dados (Supabase V2)
 

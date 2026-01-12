@@ -5,7 +5,7 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Image from '@tiptap/extension-image'
 import { Bold, Italic, Strikethrough, List, ListOrdered, CheckSquare, Image as ImageIcon } from 'lucide-react'
-import { Button } from './ui/button'
+import { Button } from '../ui/button'
 
 export default function RichTextEditor({ content, onChange, editable = true }) {
     const fileInputRef = useRef(null)

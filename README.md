@@ -30,7 +30,7 @@ This is a modern, responsive To-Do List application built with React, Vite, and 
 
 - **Frontend**: React, Vite
 - **Styling**: Vanilla CSS (Variables, Dark/Light Mode support)
-- **Editor**: ReactQuill (Rich Text)
+- **Editor**: Tiptap (Rich Text, headless)
 - **Backend**: Supabase (PostgreSQL, Auth, RLS)
 - **Icons**: Emoji-based UI
 

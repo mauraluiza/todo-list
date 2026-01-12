@@ -4,7 +4,7 @@ import { useTodos } from "../../hooks/useTodos"
 import { useLists } from "../../hooks/useLists"
 import { Button } from "../ui/button"
 import { Check, Trash2, Plus, Info } from "lucide-react"
-import TaskModal from "../TaskModal"
+import TaskModal from "../features/TaskModal"
 
 export default function AppShell({ children }) {
     const [view, setView] = useState("all")

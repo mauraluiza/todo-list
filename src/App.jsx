@@ -1,4 +1,4 @@
-import { useAuth } from "./components/AuthProvider"
+import { useAuth } from "./contexts/AuthProvider"
 import LoginPage from "./pages/LoginPage"
 import Dashboard from "./pages/Dashboard"
 import { Loader2 } from "lucide-react"
