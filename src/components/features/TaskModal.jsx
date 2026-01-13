@@ -9,12 +9,14 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [selectedListId, setSelectedListId] = useState('none')
+    const [priority, setPriority] = useState('none')
 
     useEffect(() => {
         if (task) {
             setTitle(task.title || '')
             setDescription(task.description || '')
             setSelectedListId(task.list_id || 'none')
+            setPriority(task.priority || 'none')
         } else {
             setTitle('')
             setDescription('')
@@ -25,6 +27,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
             // However, seeing as 'task' is null for new tasks, we can check if onSave logic handles it. 
             // Use 'none' as default for UI
             setSelectedListId('none')
+            setPriority('none')
         }
     }, [task, isOpen])
 
@@ -33,7 +36,8 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
         onSave({
             title,
             description,
-            listId: selectedListId === 'none' ? null : selectedListId
+            listId: selectedListId === 'none' ? null : selectedListId,
+            priority
         })
         onClose()
     }
@@ -46,7 +50,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                 </DialogHeader>
 
                 <div className="flex-1 overflow-y-auto space-y-4 py-4 flex flex-col">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-2 md:col-span-2">
                             <label className="text-sm font-medium">Título</label>
                             <Input
@@ -56,6 +60,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                                 className="text-lg font-semibold"
                             />
                         </div>
+
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Pasta</label>
                             <Select value={selectedListId} onValueChange={setSelectedListId}>
@@ -69,6 +74,19 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                                             {list.title}
                                         </SelectItem>
                                     ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Prioridade</label>
+                            <Select value={priority} onValueChange={setPriority}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a prioridade" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">Sem prioridade</SelectItem>
+                                    <SelectItem value="low">Baixa</SelectItem>
+                                    <SelectItem value="high">Urgente</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -92,6 +110,6 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                     <Button onClick={handleSave}>Salvar</Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }

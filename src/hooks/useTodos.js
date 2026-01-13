@@ -45,7 +45,18 @@ export function useTodos(statusFilter = 'all', listId = null) {
             const { data, error } = await query
 
             if (error) throw error
-            setTodos(data || [])
+
+            // Client-side sorting for priority
+            const priorityOrder = { high: 0, low: 1, none: 2 }
+            const sortedData = (data || []).sort((a, b) => {
+                const pA = priorityOrder[a.priority] ?? 2
+                const pB = priorityOrder[b.priority] ?? 2
+                if (pA !== pB) return pA - pB
+                // Secondary sort by created_at desc (newest first)
+                return new Date(b.created_at) - new Date(a.created_at)
+            })
+
+            setTodos(sortedData)
         } catch (err) {
             console.error('Error fetching todos:', err)
         } finally {
@@ -57,7 +68,7 @@ export function useTodos(statusFilter = 'all', listId = null) {
         fetchTodos()
     }, [fetchTodos])
 
-    const addTodo = async ({ title, description = '', priority = 'medium', listId = null }) => {
+    const addTodo = async ({ title, description = '', priority = 'none', listId = null }) => {
         if (!title.trim()) return
 
         const payload = {
