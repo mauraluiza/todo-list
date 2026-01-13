@@ -54,20 +54,27 @@ export default function AppShell({ children }) {
     }
 
     const getPriorityStyles = (priority) => {
-        switch (priority) {
+        // Handle null/undefined as 'none'
+        const p = priority || 'none'
+        switch (p) {
             case 'high':
-                return 'bg-orange-50/60 dark:bg-orange-950/20 border-orange-200/60 dark:border-orange-900/50 hover:bg-orange-100/60 dark:hover:bg-orange-950/30'
+                // Urgent: Soft Red
+                return 'bg-red-50/70 dark:bg-red-950/20 border-red-200/60 dark:border-red-900/50 hover:bg-red-100/60 dark:hover:bg-red-950/30'
             case 'low':
-                return 'bg-sky-50/60 dark:bg-sky-950/20 border-sky-200/60 dark:border-sky-900/50 hover:bg-sky-100/60 dark:hover:bg-sky-950/30'
+                // Low: Soft Orange
+                return 'bg-orange-50/60 dark:bg-orange-950/20 border-orange-200/60 dark:border-orange-900/50 hover:bg-orange-100/60 dark:hover:bg-orange-950/30'
+            case 'none':
             default:
-                return 'bg-card hover:bg-accent/5' // Minimalist default
+                // None: Soft Gray/Light
+                return 'bg-gray-50/40 dark:bg-gray-900/10 border-gray-200/60 dark:border-gray-800/50 hover:bg-gray-100/60 dark:hover:bg-gray-900/20'
         }
     }
 
     const getPriorityLabel = (priority) => {
-        switch (priority) {
-            case 'high': return <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 rounded-full">Urgente</span>
-            case 'low': return <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-900/40 px-2 py-0.5 rounded-full">Baixa Prioridade</span>
+        const p = priority || 'none'
+        switch (p) {
+            case 'high': return <span className="text-[10px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/40 px-2 py-0.5 rounded-full">Urgente</span>
+            case 'low': return <span className="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 rounded-full">Baixa</span> // "Baixa Prioridade" -> "Baixa" for space
             default: return null
         }
     }

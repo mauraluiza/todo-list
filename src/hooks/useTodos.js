@@ -47,10 +47,13 @@ export function useTodos(statusFilter = 'all', listId = null) {
             if (error) throw error
 
             // Client-side sorting for priority
+            // Client-side sorting for priority
             const priorityOrder = { high: 0, low: 1, none: 2 }
             const sortedData = (data || []).sort((a, b) => {
-                const pA = priorityOrder[a.priority] ?? 2
-                const pB = priorityOrder[b.priority] ?? 2
+                const priorityA = a.priority || 'none'
+                const priorityB = b.priority || 'none'
+                const pA = priorityOrder[priorityA] ?? 2
+                const pB = priorityOrder[priorityB] ?? 2
                 if (pA !== pB) return pA - pB
                 // Secondary sort by created_at desc (newest first)
                 return new Date(b.created_at) - new Date(a.created_at)
@@ -71,10 +74,14 @@ export function useTodos(statusFilter = 'all', listId = null) {
     const addTodo = async ({ title, description = '', priority = 'none', listId = null }) => {
         if (!title.trim()) return
 
+        // If priority is 'none', strictly send null to database to avoid potential string issues or constraints
+        // Also handling falsy values just in case
+        const dbPriority = (priority === 'none' || !priority) ? null : priority
+
         const payload = {
             title,
             description,
-            priority,
+            priority: dbPriority,
             status: 'pending',
             owner_id: user.id,
             workspace_id: currentWorkspace?.id || null,
@@ -82,11 +89,21 @@ export function useTodos(statusFilter = 'all', listId = null) {
         }
 
         const { error } = await supabase.from('todos').insert(payload)
-        if (!error) fetchTodos()
-        return error
+
+        if (error) {
+            console.error('Error adding todo:', error)
+            return error
+        }
+
+        fetchTodos()
+        return null
     }
 
     const updateTodo = async (id, updates) => {
+        // If updating priority to 'none', send null
+        if (updates.priority === 'none') {
+            updates.priority = null
+        }
         const { error } = await supabase.from('todos').update(updates).eq('id', id)
         if (!error) fetchTodos()
         return error
