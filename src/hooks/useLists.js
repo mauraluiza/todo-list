@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthProvider'
-import { useWorkspace } from '../contexts/WorkspaceProvider'
+import { useOrganization } from '../contexts/OrganizationProvider'
 
 export function useLists() {
     const { user } = useAuth()
-    const { currentWorkspace } = useWorkspace()
+    const { currentOrg } = useOrganization()
     const [lists, setLists] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -18,11 +18,15 @@ export function useLists() {
                 .select('*')
                 .order('created_at', { ascending: true })
 
-            // Workspace Logic
-            if (currentWorkspace) {
-                query = query.eq('workspace_id', currentWorkspace.id)
+            // Environment Logic
+            if (currentOrg) {
+                query = query.eq('organization_id', currentOrg.id)
             } else {
-                query = query.is('workspace_id', null).eq('owner_id', user.id)
+                // Personal: check for NULL org and correct owner/user
+                // Note: Assuming 'lists' table calls creator 'owner_id' (legacy) or 'user_id'
+                // We will try to preserve existing legacy logic for personal lists
+                // and use organization_id for org lists.
+                query = query.is('organization_id', null).eq('owner_id', user.id)
             }
 
             const { data, error } = await query
@@ -34,7 +38,7 @@ export function useLists() {
         } finally {
             setLoading(false)
         }
-    }, [user, currentWorkspace])
+    }, [user, currentOrg])
 
     useEffect(() => {
         fetchLists()
@@ -46,7 +50,7 @@ export function useLists() {
         const payload = {
             title,
             owner_id: user.id,
-            workspace_id: currentWorkspace?.id || null
+            organization_id: currentOrg ? currentOrg.id : null
         }
 
         const { error } = await supabase.from('lists').insert(payload)

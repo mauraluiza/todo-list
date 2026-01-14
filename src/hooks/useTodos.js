@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthProvider'
-import { useWorkspace } from '../contexts/WorkspaceProvider'
+import { useOrganization } from '../contexts/OrganizationProvider'
 
 export function useTodos(statusFilter = 'all', listId = null) {
     const { user } = useAuth()
-    const { currentWorkspace } = useWorkspace()
+    const { currentOrg } = useOrganization()
     const [todos, setTodos] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -14,40 +14,37 @@ export function useTodos(statusFilter = 'all', listId = null) {
         setLoading(true)
         try {
             let query = supabase
-                .from('todos')
+                .from('tasks') // CHANGED: 'todos' -> 'tasks'
                 .select('*')
                 .order('created_at', { ascending: false })
 
-            // Workspace Logic
-            if (currentWorkspace) {
-                query = query.eq('workspace_id', currentWorkspace.id)
+            // ENVIRONMENT ISOLATION LOGIC
+            if (currentOrg) {
+                // Organization Environment
+                query = query.eq('organization_id', currentOrg.id)
             } else {
-                query = query.is('workspace_id', null).eq('owner_id', user.id)
+                // Personal Environment
+                // Explicitly check for NULL organization_id to ensure isolation
+                // Also check owner_id (user_id in tasks table) for extra safety, though RLS handles it.
+                // Note: In 'tasks' table, the column is 'user_id', not 'owner_id'.
+                query = query.is('organization_id', null).eq('user_id', user.id)
             }
 
-            // List Filter Logic
-            if (listId && listId !== 'all') {
-                query = query.eq('list_id', listId)
-            }
+            // List Filter Logic (If Lists feature is migrated later, keeping simple for now)
+            // if (listId && listId !== 'all') { query = query.eq('list_id', listId) }
 
             // Status Filter Logic
             if (statusFilter !== 'all') {
-                if (statusFilter === 'archived') {
-                    // maybe handle trash logic
-                } else {
-                    query = query.eq('status', statusFilter)
-                }
+                query = query.eq('status', statusFilter)
             } else {
-                // Filter out archived/trash by default if 'all' means 'active'
-                query = query.neq('status', 'archived')
+                // Default: exclude archived/trash if applicable
             }
 
             const { data, error } = await query
 
             if (error) throw error
 
-            // Client-side sorting for priority
-            // Client-side sorting for priority
+            // Client-side sorting (Priority)
             const priorityOrder = { high: 0, low: 1, none: 2 }
             const sortedData = (data || []).sort((a, b) => {
                 const priorityA = a.priority || 'none'
@@ -55,27 +52,24 @@ export function useTodos(statusFilter = 'all', listId = null) {
                 const pA = priorityOrder[priorityA] ?? 2
                 const pB = priorityOrder[priorityB] ?? 2
                 if (pA !== pB) return pA - pB
-                // Secondary sort by created_at desc (newest first)
                 return new Date(b.created_at) - new Date(a.created_at)
             })
 
             setTodos(sortedData)
         } catch (err) {
-            console.error('Error fetching todos:', err)
+            console.error('Error fetching tasks:', err)
         } finally {
             setLoading(false)
         }
-    }, [user, currentWorkspace, statusFilter, listId])
+    }, [user, currentOrg, statusFilter]) // Removed listId dep until lists are reimplemented
 
     useEffect(() => {
         fetchTodos()
     }, [fetchTodos])
 
-    const addTodo = async ({ title, description = '', priority = 'none', listId = null }) => {
+    const addTodo = async ({ title, description = '', priority = 'none' }) => {
         if (!title.trim()) return
 
-        // If priority is 'none', strictly send null to database to avoid potential string issues or constraints
-        // Also handling falsy values just in case
         const dbPriority = (priority === 'none' || !priority) ? null : priority
 
         const payload = {
@@ -83,15 +77,15 @@ export function useTodos(statusFilter = 'all', listId = null) {
             description,
             priority: dbPriority,
             status: 'pending',
-            owner_id: user.id,
-            workspace_id: currentWorkspace?.id || null,
-            list_id: listId
+            user_id: user.id, // Creator
+            organization_id: currentOrg ? currentOrg.id : null, // Environment
+            // list_id: listId
         }
 
-        const { error } = await supabase.from('todos').insert(payload)
+        const { error } = await supabase.from('tasks').insert(payload)
 
         if (error) {
-            console.error('Error adding todo:', error)
+            console.error('Error adding task:', error)
             return error
         }
 
@@ -100,17 +94,16 @@ export function useTodos(statusFilter = 'all', listId = null) {
     }
 
     const updateTodo = async (id, updates) => {
-        // If updating priority to 'none', send null
         if (updates.priority === 'none') {
             updates.priority = null
         }
-        const { error } = await supabase.from('todos').update(updates).eq('id', id)
+        const { error } = await supabase.from('tasks').update(updates).eq('id', id)
         if (!error) fetchTodos()
         return error
     }
 
     const deleteTodo = async (id) => {
-        const { error } = await supabase.from('todos').delete().eq('id', id)
+        const { error } = await supabase.from('tasks').delete().eq('id', id)
         if (!error) fetchTodos()
         return error
     }

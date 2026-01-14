@@ -1,4 +1,4 @@
-import { WorkspaceProvider } from './contexts/WorkspaceProvider'
+import { OrganizationProvider } from './contexts/OrganizationProvider'
 import { AuthProvider } from './contexts/AuthProvider'
 import { ThemeProvider } from './contexts/ThemeProvider'
 import React from 'react'
@@ -10,9 +10,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
         <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
             <AuthProvider>
-                <WorkspaceProvider>
+                <OrganizationProvider>
                     <App />
-                </WorkspaceProvider>
+                </OrganizationProvider>
             </AuthProvider>
         </ThemeProvider>
     </React.StrictMode>,
