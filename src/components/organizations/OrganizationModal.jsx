@@ -18,22 +18,31 @@ export default function OrganizationModal({ open, onOpenChange }) {
     const { createOrganization, joinOrganization } = useOrganization()
     const [loading, setLoading] = useState(false)
     const [createName, setCreateName] = useState("")
+    const [createCode, setCreateCode] = useState("")
     const [joinCode, setJoinCode] = useState("")
     const [error, setError] = useState("")
 
     const handleCreate = async (e) => {
         e.preventDefault()
         setError("")
-        if (!createName.trim()) return
+        if (!createName.trim()) {
+            setError("O nome é obrigatório.")
+            return
+        }
+        if (!createCode.trim() || createCode.length < 4) {
+            setError("O código deve ter pelo menos 4 caracteres.")
+            return
+        }
 
         setLoading(true)
-        const { error } = await createOrganization(createName)
+        const { error } = await createOrganization(createName, createCode)
         setLoading(false)
 
         if (error) {
-            setError("Erro ao criar organização. Tente novamente.")
+            setError(error.message || "Erro ao criar organização. Verifique se o código já existe.")
         } else {
             setCreateName("")
+            setCreateCode("")
             onOpenChange(false)
         }
     }
@@ -87,6 +96,42 @@ export default function OrganizationModal({ open, onOpenChange }) {
                                     />
                                 </div>
                             </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="createCode">Código de Convite</Label>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-auto p-0 text-xs text-primary"
+                                        onClick={() => {
+                                            const random = Math.random().toString(36).substring(2, 8)
+                                            setCreateCode(`org-${random}`)
+                                        }}
+                                    >
+                                        Gerar Aleatório
+                                    </Button>
+                                </div>
+                                <div className="relative">
+                                    <Users className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="createCode"
+                                        placeholder="Ex: empresa-2024"
+                                        className="pl-9 font-mono"
+                                        value={createCode}
+                                        onChange={(e) => {
+                                            // Allow specific chars
+                                            const val = e.target.value.toLowerCase().replace(/[^a-z0-9.-]/g, '')
+                                            setCreateCode(val)
+                                        }}
+                                    />
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Mínimo 4 caracteres. Permitido: letras, números, ponto e traço.
+                                </p>
+                            </div>
+
                             {error && <p className="text-sm text-red-500">{error}</p>}
                             <Button type="submit" className="w-full" disabled={loading}>
                                 {loading ? "Criando..." : "Criar Organização"}

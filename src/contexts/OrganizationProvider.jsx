@@ -57,40 +57,22 @@ export function OrganizationProvider({ children }) {
         fetchOrganizations()
     }, [user])
 
-    const createOrganization = async (name) => {
+    const createOrganization = async (name, code) => {
         try {
-            // Generate a random unique code: NameSlug-Random4Chars
-            const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 10)
-            const random = Math.random().toString(36).substring(2, 6)
-            const code = `${slug}-${random}`
+            // Use Secure RPC
+            const { data: org, error } = await supabase.rpc('create_new_organization', {
+                org_name: name,
+                org_code: code
+            })
 
-            // 1. Create Org
-            const { data: org, error: orgError } = await supabase
-                .from('organizations')
-                .insert({ name, code, created_by: user.id })
-                .select()
-                .single()
-
-            if (orgError) throw orgError
-
-            // 2. Add Creator as Admin Member (RLS might auto-handle, but ensuring strictly)
-            // Note: If Policy "Join orgs" allows inserting self, this works.
-            const { error: memberError } = await supabase
-                .from('organization_members')
-                .insert({
-                    organization_id: org.id,
-                    user_id: user.id,
-                    role: 'admin'
-                })
-
-            if (memberError) {
-                // Rollback org creation if member fail (simplified manual rollback)
-                await supabase.from('organizations').delete().eq('id', org.id)
-                throw memberError
-            }
+            if (error) throw error
 
             await fetchOrganizations()
-            setCurrentOrg({ ...org, role: 'admin' }) // Auto switch
+
+            // Auto switch to new org
+            // RPC returns the org object, we append the role manually as we know it's admin
+            setCurrentOrg({ ...org, role: 'admin' })
+
             return { data: org, error: null }
         } catch (error) {
             console.error('Create Org Error:', error)
