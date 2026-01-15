@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthProvider'
 import { useOrganization } from '../contexts/OrganizationProvider'
 
 export function useTodos(statusFilter = 'all', listId = null) {
-    const { user } = useAuth()
+    const { user } = useAuth() || {}
     const { currentOrg } = useOrganization()
     const [todos, setTodos] = useState([])
     const [loading, setLoading] = useState(true)
@@ -14,7 +14,7 @@ export function useTodos(statusFilter = 'all', listId = null) {
         setLoading(true)
         try {
             let query = supabase
-                .from('tasks') // CHANGED: 'todos' -> 'tasks'
+                .from('todos') // CHANGED: 'tasks' -> 'todos' (Unified)
                 .select('*')
                 .order('created_at', { ascending: false })
 
@@ -42,7 +42,16 @@ export function useTodos(statusFilter = 'all', listId = null) {
 
             const { data, error } = await query
 
-            if (error) throw error
+            if (error) {
+                console.error('SUPABASE FETCH ERROR:', error)
+                throw error
+            }
+
+            console.log('SUPABASE FETCH SUCCESS:', {
+                count: data.length,
+                sample: data[0],
+                filter: { statusFilter, org: currentOrg?.id }
+            })
 
             // Client-side sorting (Priority)
             const priorityOrder = { high: 0, low: 1, none: 2 }
@@ -79,10 +88,13 @@ export function useTodos(statusFilter = 'all', listId = null) {
             status: 'pending',
             user_id: user.id, // Creator
             organization_id: currentOrg ? currentOrg.id : null, // Environment
+            owner_id: user.id, // REQUIRED by table constraint
             // list_id: listId
         }
 
-        const { error } = await supabase.from('tasks').insert(payload)
+        console.log('ATTEMPTING INSERT:', payload)
+
+        const { error } = await supabase.from('todos').insert(payload)
 
         if (error) {
             console.error('Error adding task:', error)
@@ -97,13 +109,13 @@ export function useTodos(statusFilter = 'all', listId = null) {
         if (updates.priority === 'none') {
             updates.priority = null
         }
-        const { error } = await supabase.from('tasks').update(updates).eq('id', id)
+        const { error } = await supabase.from('todos').update(updates).eq('id', id)
         if (!error) fetchTodos()
         return error
     }
 
     const deleteTodo = async (id) => {
-        const { error } = await supabase.from('tasks').delete().eq('id', id)
+        const { error } = await supabase.from('todos').delete().eq('id', id)
         if (!error) fetchTodos()
         return error
     }
