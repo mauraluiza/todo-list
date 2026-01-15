@@ -49,7 +49,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                     <DialogTitle>{task ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-y-auto space-y-4 py-4 flex flex-col">
+                <div className="flex-1 overflow-y-auto space-y-4 p-6 flex flex-col">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-2 md:col-span-2">
                             <label className="text-sm font-medium">Título</label>
