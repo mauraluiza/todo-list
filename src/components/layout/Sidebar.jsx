@@ -59,6 +59,17 @@ export function Sidebar({ activeView, onViewChange }) {
                 </div>
 
                 <div className="space-y-1">
+                    <Button
+                        variant={activeView === 'trash' ? 'secondary' : 'ghost'}
+                        className="w-full justify-start text-muted-foreground hover:text-foreground"
+                        onClick={() => onViewChange('trash')}
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Lixeira
+                    </Button>
+                </div>
+
+                <div className="space-y-1">
                     <div className="flex items-center justify-between px-2 py-1">
                         <h4 className="text-sm font-semibold tracking-tight">Pastas</h4>
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsNewListModalOpen(true)}>

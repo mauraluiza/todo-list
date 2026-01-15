@@ -34,10 +34,17 @@ export function useTodos(statusFilter = 'all', listId = null) {
             // if (listId && listId !== 'all') { query = query.eq('list_id', listId) }
 
             // Status Filter Logic
-            if (statusFilter !== 'all') {
-                query = query.eq('status', statusFilter)
+            // Status Filter Logic
+            if (statusFilter === 'trash') {
+                // TRASH VIEW: Only deleted items
+                query = query.not('deleted_at', 'is', null)
             } else {
-                // Default: exclude archived/trash if applicable
+                // NORMAL VIEW: Non-deleted items
+                query = query.is('deleted_at', null)
+
+                if (statusFilter !== 'all') {
+                    query = query.eq('status', statusFilter)
+                }
             }
 
             const { data, error } = await query
@@ -114,11 +121,47 @@ export function useTodos(statusFilter = 'all', listId = null) {
         return error
     }
 
+    // Soft Delete: Move to Trash
     const deleteTodo = async (id) => {
-        const { error } = await supabase.from('todos').delete().eq('id', id)
+        const { error } = await supabase
+            .from('todos')
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('id', id)
+
         if (!error) fetchTodos()
         return error
     }
 
-    return { todos, loading, addTodo, updateTodo, deleteTodo, refresh: fetchTodos }
+    // Restore from Trash
+    const restoreTodo = async (id) => {
+        const { error } = await supabase
+            .from('todos')
+            .update({ deleted_at: null })
+            .eq('id', id)
+
+        if (!error) fetchTodos()
+        return error
+    }
+
+    // Hard Delete: Remove forever
+    const permDeleteTodo = async (id) => {
+        const { error } = await supabase
+            .from('todos')
+            .delete()
+            .eq('id', id)
+
+        if (!error) fetchTodos()
+        return error
+    }
+
+    return {
+        todos,
+        loading,
+        addTodo,
+        updateTodo,
+        deleteTodo,
+        restoreTodo,
+        permDeleteTodo,
+        refresh: fetchTodos
+    }
 }

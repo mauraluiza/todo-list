@@ -3,7 +3,7 @@ import { Sidebar } from "./Sidebar"
 import { useTodos } from "../../hooks/useTodos"
 import { useLists } from "../../hooks/useLists"
 import { Button } from "../ui/button"
-import { Check, Trash2, Plus, Info } from "lucide-react"
+import { Check, Trash2, Plus, Info, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import TaskModal from "../features/TaskModal"
 
@@ -12,13 +12,17 @@ export default function AppShell({ children }) {
     const [statusFilter, setStatusFilter] = useState("pending")
     const [priorityFilter, setPriorityFilter] = useState("all")
 
+    const isTrashView = view === 'trash'
+    const effectiveStatusFilter = isTrashView ? 'trash' : (statusFilter === 'completed' ? 'completed' : 'pending')
+
     // Pass statusFilter to hook to handle data fetching/subscription
-    const { todos, loading, addTodo, updateTodo, deleteTodo } = useTodos(statusFilter === 'completed' ? 'completed' : 'pending', view)
+    const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo } = useTodos(effectiveStatusFilter, view)
     const { lists } = useLists()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingTask, setEditingTask] = useState(null)
 
     const viewTitle = useMemo(() => {
+        if (view === 'trash') return 'Lixeira'
         if (view === 'all') return 'Todas'
         const list = lists.find(l => l.id === view)
         return list ? list.title : 'Todas'
@@ -92,43 +96,47 @@ export default function AppShell({ children }) {
                                 </h1>
                                 <p className="text-muted-foreground mt-2 text-lg">Suas tarefas e prioridades.</p>
                             </div>
-                            <Button onClick={openForCreate} size="lg" className="h-12 px-6 shadow-md">
-                                <Plus className="mr-2 h-5 w-5" /> Nova Tarefa
-                            </Button>
+                            {!isTrashView && (
+                                <Button onClick={openForCreate} size="lg" className="h-12 px-6 shadow-md">
+                                    <Plus className="mr-2 h-5 w-5" /> Nova Tarefa
+                                </Button>
+                            )}
                         </header>
 
-                        {/* Filters and Tabs */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-muted/30 p-2 rounded-xl border">
-                            <div className="flex p-1 bg-muted rounded-lg">
-                                <button
-                                    onClick={() => setStatusFilter('pending')}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'pending' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                                >
-                                    A Fazer
-                                </button>
-                                <button
-                                    onClick={() => setStatusFilter('completed')}
-                                    className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'completed' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
-                                >
-                                    Concluídas
-                                </button>
-                            </div>
+                        {/* Filters and Tabs - Hide in Trash View */}
+                        {!isTrashView && (
+                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-muted/30 p-2 rounded-xl border">
+                                <div className="flex p-1 bg-muted rounded-lg">
+                                    <button
+                                        onClick={() => setStatusFilter('pending')}
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'pending' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        A Fazer
+                                    </button>
+                                    <button
+                                        onClick={() => setStatusFilter('completed')}
+                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${statusFilter === 'completed' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                                    >
+                                        Concluídas
+                                    </button>
+                                </div>
 
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <span className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por:</span>
-                                <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                                    <SelectTrigger className="w-[180px] bg-background">
-                                        <SelectValue placeholder="Prioridade" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Todas</SelectItem>
-                                        <SelectItem value="high">Urgente</SelectItem>
-                                        <SelectItem value="low">Baixa Prioridade</SelectItem>
-                                        <SelectItem value="none">Sem Prioridade</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <span className="text-sm text-muted-foreground whitespace-nowrap">Filtrar por:</span>
+                                    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                                        <SelectTrigger className="w-[180px] bg-background">
+                                            <SelectValue placeholder="Prioridade" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">Todas</SelectItem>
+                                            <SelectItem value="high">Urgente</SelectItem>
+                                            <SelectItem value="low">Baixa Prioridade</SelectItem>
+                                            <SelectItem value="none">Sem Prioridade</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Task List */}
                         <div className="grid gap-3 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -141,52 +149,102 @@ export default function AppShell({ children }) {
                                 </div>
                             )}
 
-                            {filteredTodos.map(todo => (
-                                <div
-                                    key={todo.id}
-                                    className={`group flex items-center justify-between p-4 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${getPriorityStyles(todo.priority)}`}
-                                    onClick={() => openForEdit(todo)}
-                                >
-                                    <div className="flex items-center gap-4 flex-1">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                // If currently in 'pending', moving to 'completed' removes it from view (since current view is pending), and vice versa.
-                                                updateTodo(todo.id, { status: todo.status === 'completed' ? 'pending' : 'completed' })
-                                            }}
-                                            className={`rounded-full p-1 border transition-colors ${todo.status === 'completed' ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground text-transparent hover:bg-primary/10'}`}
-                                        >
-                                            <Check className="h-4 w-4" />
-                                        </button>
-                                        <div className="flex flex-col gap-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className={`text-lg font-medium transition-all ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-                                                    {todo.title}
-                                                </span>
-                                                {getPriorityLabel(todo.priority)}
-                                            </div>
+                            {filteredTodos.map(todo => {
+                                // Calculate days remaining for Trash items
+                                let daysRemaining = null
+                                if (isTrashView && todo.deleted_at) {
+                                    const deleteDate = new Date(todo.deleted_at)
+                                    const expirationDate = new Date(deleteDate.getTime() + (30 * 24 * 60 * 60 * 1000))
+                                    const diffTime = expirationDate - new Date()
+                                    daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+                                    if (daysRemaining < 0) daysRemaining = 0
+                                }
 
-                                            {/* Show small indicator if description exists */}
-                                            {todo.description && (
-                                                <span className="text-xs text-muted-foreground flex items-center">
-                                                    <Info className="h-3 w-3 mr-1" /> Ver detalhes
-                                                </span>
+                                return (
+                                    <div
+                                        key={todo.id}
+                                        className={`group flex items-center justify-between p-4 border rounded-xl shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${getPriorityStyles(todo.priority)}`}
+                                        onClick={() => !isTrashView && openForEdit(todo)}
+                                    >
+                                        <div className="flex items-center gap-4 flex-1">
+                                            {!isTrashView && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        updateTodo(todo.id, { status: todo.status === 'completed' ? 'pending' : 'completed' })
+                                                    }}
+                                                    className={`rounded-full p-1 border transition-colors ${todo.status === 'completed' ? 'bg-primary border-primary text-primary-foreground' : 'border-muted-foreground text-transparent hover:bg-primary/10'}`}
+                                                >
+                                                    <Check className="h-4 w-4" />
+                                                </button>
+                                            )}
+
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-lg font-medium transition-all ${!isTrashView && todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+                                                        {todo.title}
+                                                    </span>
+                                                    {!isTrashView && getPriorityLabel(todo.priority)}
+                                                    {isTrashView && daysRemaining !== null && (
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${daysRemaining < 5 ? 'bg-red-100 text-destructive' : 'bg-muted text-muted-foreground'}`}>
+                                                            {daysRemaining} dias
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {todo.description && (
+                                                    <span className="text-xs text-muted-foreground flex items-center">
+                                                        <Info className="h-3 w-3 mr-1" /> Ver detalhes
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            {isTrashView ? (
+                                                <>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-primary hover:text-primary hover:bg-primary/10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            restoreTodo(todo.id)
+                                                        }}
+                                                    >
+                                                        <RefreshCcw className="h-4 w-4 mr-2" /> Restaurar
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            if (confirm('Tem certeza? Essa ação não pode ser desfeita.')) {
+                                                                permDeleteTodo(todo.id)
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                                                    </Button>
+                                                </>
+                                            ) : (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 z-10"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        deleteTodo(todo.id)
+                                                    }}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 z-10"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            deleteTodo(todo.id)
-                                        }}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                                )
+                            })}
                         </div>
                     </div>
                 )}
