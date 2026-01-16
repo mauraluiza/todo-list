@@ -2,6 +2,7 @@ import { useState, useMemo } from "react"
 import { Sidebar } from "./Sidebar"
 import { useTodos } from "../../hooks/useTodos"
 import { useLists } from "../../hooks/useLists"
+import { useOrganization } from "../../contexts/OrganizationProvider"
 import { Button } from "../ui/button"
 import { Check, Trash2, Plus, Info, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
@@ -16,8 +17,9 @@ export default function AppShell({ children }) {
     const effectiveStatusFilter = isTrashView ? 'trash' : (statusFilter === 'completed' ? 'completed' : 'pending')
 
     // Pass statusFilter to hook to handle data fetching/subscription
-    const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo } = useTodos(effectiveStatusFilter, view)
+    const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo, addParticipant, removeParticipant } = useTodos(effectiveStatusFilter, view)
     const { lists } = useLists()
+    const { currentOrg } = useOrganization()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingTask, setEditingTask] = useState(null)
 
@@ -35,10 +37,17 @@ export default function AppShell({ children }) {
     }, [todos, priorityFilter])
 
     const handleCreateTask = async (taskData) => {
-        if (view !== 'all') {
+        if (view !== 'all' && view !== 'trash') {
             taskData.listId = view
         }
-        await addTodo(taskData)
+
+        const { participants = [], ...todoPayload } = taskData
+        const { data } = await addTodo(todoPayload)
+
+        if (data && participants.length > 0) {
+            // Assign participants
+            await Promise.all(participants.map(uid => addParticipant(data.id, uid)))
+        }
     }
 
     const handleUpdateTask = async (taskData) => {
@@ -196,6 +205,31 @@ export default function AppShell({ children }) {
                                                     <span className="text-xs text-muted-foreground flex items-center">
                                                         <Info className="h-3 w-3 mr-1" /> Ver detalhes
                                                     </span>
+                                                )}
+
+                                                {/* Creator and Participants (Org Mode) */}
+                                                {currentOrg && (todo.creator || (todo.participants && todo.participants.length > 0)) && (
+                                                    <div className="flex items-center gap-3 mt-1">
+                                                        {todo.creator && (
+                                                            <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                                                                Criado por: <span className="font-medium text-foreground/80">{todo.creator.full_name || todo.creator.email}</span>
+                                                            </span>
+                                                        )}
+
+                                                        {todo.participants && todo.participants.length > 0 && (
+                                                            <div className="flex -space-x-1.5 overflow-hidden">
+                                                                {todo.participants.map(({ user }) => (
+                                                                    <div
+                                                                        key={user.id}
+                                                                        className="inline-block h-5 w-5 rounded-full ring-2 ring-background bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase"
+                                                                        title={user.full_name || user.email}
+                                                                    >
+                                                                        {(user.full_name || user.email || '?')[0]}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>

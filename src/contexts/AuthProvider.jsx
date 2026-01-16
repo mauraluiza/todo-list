@@ -21,10 +21,35 @@ export function AuthProvider({ children }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null)
             setLoading(false)
+            setUser(session?.user ?? null)
+            setLoading(false)
         })
 
         return () => subscription.unsubscribe()
     }, [])
+
+    // Sync Profile on User Change
+    useEffect(() => {
+        if (user) {
+            const upsertProfile = async () => {
+                try {
+                    const updates = {
+                        id: user.id,
+                        email: user.email,
+                        updated_at: new Date(),
+                        // Ideally get full_name from metadata if available, else email
+                        full_name: user.user_metadata?.full_name || user.email.split('@')[0]
+                    }
+
+                    const { error } = await supabase.from('profiles').upsert(updates)
+                    if (error) console.error("Error syncing profile:", error)
+                } catch (err) {
+                    console.error("Profile sync exception:", err)
+                }
+            }
+            upsertProfile()
+        }
+    }, [user])
 
     const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
     const signUp = (email, password) => supabase.auth.signUp({ email, password })

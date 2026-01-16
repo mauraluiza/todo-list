@@ -4,6 +4,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import RichTextEditor from './RichTextEditor'
+import { useOrganization } from '../../contexts/OrganizationProvider'
+import { supabase } from '../../lib/supabase'
+import { Check } from 'lucide-react'
 
 export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] }) {
     const [title, setTitle] = useState('')
@@ -11,23 +14,57 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
     const [selectedListId, setSelectedListId] = useState('none')
     const [priority, setPriority] = useState('none')
 
+    // Organization / Participants Logic
+    const { currentOrg } = useOrganization()
+    const [availableMembers, setAvailableMembers] = useState([])
+    const [participants, setParticipants] = useState([]) // Array of User IDs
+    const [showParticipants, setShowParticipants] = useState(false)
+
+    useEffect(() => {
+        if (currentOrg && isOpen) {
+            // Fetch potential participants
+            const fetchMembers = async () => {
+                const { data } = await supabase
+                    .from('organization_members')
+                    .select('user_id, profile:profiles(full_name, email)')
+                    .eq('organization_id', currentOrg.id)
+
+                if (data) {
+                    setAvailableMembers(data.map(m => ({
+                        id: m.user_id,
+                        label: m.profile?.full_name || m.profile?.email || 'Usuário'
+                    })))
+                }
+            }
+            fetchMembers()
+            setShowParticipants(true)
+        } else {
+            setShowParticipants(false)
+            setAvailableMembers([])
+        }
+    }, [currentOrg, isOpen])
+
+    const toggleParticipant = (userId) => {
+        setParticipants(prev =>
+            prev.includes(userId)
+                ? prev.filter(id => id !== userId)
+                : [...prev, userId]
+        )
+    }
+
     useEffect(() => {
         if (task) {
             setTitle(task.title || '')
             setDescription(task.description || '')
             setSelectedListId(task.list_id || 'none')
             setPriority(task.priority || 'none')
+            setParticipants([]) // Not supporting edit participants yet for MVP
         } else {
             setTitle('')
             setDescription('')
-            // If creating a task and a list is pre-selected (passed via onSave usually in parent, but here we might want local state),
-            // actually AppShell handles the default listId in 'handleCreateTask'. 
-            // BUT UI should reflect it if possible. For now, let's default to 'none' or 'inbox'.
-            // To make it perfect, we should accept a defaultListId prop. 
-            // However, seeing as 'task' is null for new tasks, we can check if onSave logic handles it. 
-            // Use 'none' as default for UI
             setSelectedListId('none')
             setPriority('none')
+            setParticipants([])
         }
     }, [task, isOpen])
 
@@ -37,7 +74,8 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
             title,
             description,
             listId: selectedListId === 'none' ? null : selectedListId,
-            priority
+            priority,
+            participants // Pass participants for Create logic
         })
         onClose()
     }
@@ -91,6 +129,29 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                             </Select>
                         </div>
                     </div>
+
+                    {/* Participants Section (Only New Tasks in Organization) */}
+                    {!task && showParticipants && (
+                        <div className="space-y-2 md:col-span-4 border-t pt-4">
+                            <label className="text-sm font-medium block">Participantes</label>
+                            <div className="flex flex-wrap gap-2">
+                                {availableMembers.map(member => {
+                                    const isSelected = participants.includes(member.id)
+                                    return (
+                                        <button
+                                            key={member.id}
+                                            onClick={() => toggleParticipant(member.id)}
+                                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs border transition-colors ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                                        >
+                                            <span>{member.label}</span>
+                                            {isSelected && <Check className="h-3 w-3" />}
+                                        </button>
+                                    )
+                                })}
+                                {availableMembers.length === 0 && <span className="text-muted-foreground text-xs">Nenhum outro membro encontrado.</span>}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="space-y-2 flex-1 flex flex-col min-h-0">
                         <label className="text-sm font-medium">Descrição</label>

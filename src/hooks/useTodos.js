@@ -15,7 +15,13 @@ export function useTodos(statusFilter = 'all', listId = null) {
         try {
             let query = supabase
                 .from('todos') // CHANGED: 'tasks' -> 'todos' (Unified)
-                .select('*')
+                .select(`
+                    *,
+                    creator:profiles!todos_user_id_fkey(full_name, email),
+                    participants:todo_participants(
+                        user:profiles(id, full_name, email)
+                    )
+                `)
                 .order('created_at', { ascending: false })
 
             // ENVIRONMENT ISOLATION LOGIC
@@ -101,15 +107,15 @@ export function useTodos(statusFilter = 'all', listId = null) {
 
         console.log('ATTEMPTING INSERT:', payload)
 
-        const { error } = await supabase.from('todos').insert(payload)
+        const { data, error } = await supabase.from('todos').insert(payload).select().single()
 
         if (error) {
             console.error('Error adding task:', error)
-            return error
+            return { error }
         }
 
         fetchTodos()
-        return null
+        return { data }
     }
 
     const updateTodo = async (id, updates) => {
@@ -154,6 +160,26 @@ export function useTodos(statusFilter = 'all', listId = null) {
         return error
     }
 
+
+    const addParticipant = async (todoId, userId) => {
+        const { error } = await supabase
+            .from('todo_participants')
+            .insert({ todo_id: todoId, user_id: userId })
+
+        if (!error) fetchTodos()
+        return error
+    }
+
+    const removeParticipant = async (todoId, userId) => {
+        const { error } = await supabase
+            .from('todo_participants')
+            .delete()
+            .match({ todo_id: todoId, user_id: userId })
+
+        if (!error) fetchTodos()
+        return error
+    }
+
     return {
         todos,
         loading,
@@ -162,6 +188,8 @@ export function useTodos(statusFilter = 'all', listId = null) {
         deleteTodo,
         restoreTodo,
         permDeleteTodo,
+        addParticipant,
+        removeParticipant,
         refresh: fetchTodos
     }
 }
