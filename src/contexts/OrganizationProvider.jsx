@@ -20,23 +20,27 @@ export function OrganizationProvider({ children }) {
 
         try {
             // Fetch orgs user is a member of
+            // We query organization_members first to get the IDs and Roles, then expand the Organization details
             const { data, error } = await supabase
-                .from('organizations')
+                .from('organization_members')
                 .select(`
-                    id,
-                    name,
-                    code,
-                    role:organization_members!inner(role)
+                    role,
+                    organization:organizations (
+                        id,
+                        name,
+                        code
+                    )
                 `)
+                .eq('user_id', user.id)
 
             if (error) throw error
 
-            // Transform data to flatten role
-            const formattedOrgs = data.map(org => ({
-                id: org.id,
-                name: org.name,
-                code: org.code,
-                role: org.role[0]?.role || 'member'
+            // Transform data
+            const formattedOrgs = data.map(member => ({
+                id: member.organization.id,
+                name: member.organization.name,
+                code: member.organization.code,
+                role: member.role
             }))
 
             setOrganizations(formattedOrgs)
