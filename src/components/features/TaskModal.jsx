@@ -24,16 +24,21 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
         if (currentOrg && isOpen) {
             // Fetch potential participants
             const fetchMembers = async () => {
-                const { data } = await supabase
+                const { data, error } = await supabase
                     .from('organization_members')
                     .select('user_id, profile:profiles(full_name, email)')
                     .eq('organization_id', currentOrg.id)
 
-                if (data) {
-                    setAvailableMembers(data.map(m => ({
-                        id: m.user_id,
-                        label: m.profile?.full_name || m.profile?.email || 'Usuário'
-                    })))
+                if (error) {
+                    console.error('TaskModal: Error fetching members:', error)
+                } else {
+                    console.log('TaskModal: Fetched members:', data)
+                    if (data) {
+                        setAvailableMembers(data.map(m => ({
+                            id: m.user_id,
+                            label: m.profile?.full_name || m.profile?.email || 'Usuário'
+                        })))
+                    }
                 }
             }
             fetchMembers()

@@ -33,7 +33,13 @@ export function OrganizationProvider({ children }) {
                 `)
                 .eq('user_id', user.id)
 
-            if (error) throw error
+
+            if (error) {
+                console.error('OrganizationProvider: Error fetching organizations:', error)
+                throw error
+            }
+
+            console.log('OrganizationProvider: Fetched raw org data:', data)
 
             // Transform data
             const formattedOrgs = data.map(member => ({
@@ -43,10 +49,12 @@ export function OrganizationProvider({ children }) {
                 role: member.role
             }))
 
+            console.log('OrganizationProvider: Formatted orgs:', formattedOrgs)
             setOrganizations(formattedOrgs)
 
             // Validate currentOrg is still valid (user might have been removed)
             if (currentOrg && !formattedOrgs.find(o => o.id === currentOrg.id)) {
+                console.warn('OrganizationProvider: Current org no longer valid, resetting to personal.')
                 setCurrentOrg(null) // Reset to personal
             }
 

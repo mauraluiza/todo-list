@@ -17,7 +17,7 @@ export function useTodos(statusFilter = 'all', listId = null) {
                 .from('todos') // CHANGED: 'tasks' -> 'todos' (Unified)
                 .select(`
                     *,
-                    creator:profiles!todos_user_id_fkey(full_name, email),
+                    creator:profiles(full_name, email),
                     participants:todo_participants(
                         user:profiles(id, full_name, email)
                     )
