@@ -17,9 +17,9 @@ export function useTodos(statusFilter = 'all', listId = null) {
                 .from('todos') // CHANGED: 'tasks' -> 'todos' (Unified)
                 .select(`
                     *,
-                    creator:profiles(full_name, email),
+                    creator:profiles!todos_user_id_profiles_fkey(full_name, email),
                     participants:todo_participants(
-                        user:profiles(id, full_name, email)
+                        user:profiles!todo_participants_user_id_profiles_fkey(id, full_name, email)
                     )
                 `)
                 .order('created_at', { ascending: false })
