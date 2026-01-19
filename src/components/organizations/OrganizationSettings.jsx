@@ -39,10 +39,9 @@ export default function OrganizationSettings({ open, onOpenChange }) {
                 .select(`
                     id,
                     role,
-                    user:auth.users ( email )
-                `) // Note: auth.users access depends on specific view permissions. 
-                // If this fails, we need a public profile table or a secure RPC.
-                // For now, assuming standard RLS policy "View members of own orgs" allows basic access.
+                    user_id,
+                    profile:profiles ( full_name, email )
+                `)
                 .eq('organization_id', currentOrg.id)
 
             // If direct auth.users access is blocked (common security pattern),
@@ -147,7 +146,7 @@ export default function OrganizationSettings({ open, onOpenChange }) {
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-medium">
-                                                        {member.user?.email || "Usuário"} {member.user_id === user.id && "(Você)"}
+                                                        {member.profile?.email || member.profile?.full_name || "Usuário"} {member.user_id === user.id && "(Você)"}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground capitalize">{member.role}</div>
                                                 </div>

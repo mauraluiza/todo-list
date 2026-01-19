@@ -218,15 +218,17 @@ export default function AppShell({ children }) {
 
                                                         {todo.participants && todo.participants.length > 0 && (
                                                             <div className="flex -space-x-1.5 overflow-hidden">
-                                                                {todo.participants.map(({ user }) => (
-                                                                    <div
-                                                                        key={user.id}
-                                                                        className="inline-block h-5 w-5 rounded-full ring-2 ring-background bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase"
-                                                                        title={user.full_name || user.email}
-                                                                    >
-                                                                        {(user.full_name || user.email || '?')[0]}
-                                                                    </div>
-                                                                ))}
+                                                                {todo.participants
+                                                                    .filter(p => p.user)
+                                                                    .map(({ user }) => (
+                                                                        <div
+                                                                            key={user.id}
+                                                                            className="inline-block h-5 w-5 rounded-full ring-2 ring-background bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[8px] font-bold text-slate-600 dark:text-slate-300 uppercase"
+                                                                            title={user.full_name || user.email}
+                                                                        >
+                                                                            {(user.full_name || user.email || '?')[0]}
+                                                                        </div>
+                                                                    ))}
                                                             </div>
                                                         )}
                                                     </div>
