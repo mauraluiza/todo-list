@@ -5,6 +5,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import RichTextEditor from './RichTextEditor'
 import { useOrganization } from '../../contexts/OrganizationProvider'
+import { useAuth } from '../../contexts/AuthProvider'
 import { supabase } from '../../lib/supabase'
 import { Check } from 'lucide-react'
 
@@ -15,10 +16,18 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
     const [priority, setPriority] = useState('none')
 
     // Organization / Participants Logic
+    const { user } = useAuth()
     const { currentOrg } = useOrganization()
     const [availableMembers, setAvailableMembers] = useState([])
     const [participants, setParticipants] = useState([]) // Array of User IDs
     const [showParticipants, setShowParticipants] = useState(false)
+
+    // Permissions
+    const isCreator = !task || task.user_id === user?.id
+    const isAdmin = currentOrg?.role === 'admin' || currentOrg?.role === 'owner'
+    const isParticipant = task?.participants?.some(p => p.user?.id === user?.id)
+    const canEdit = isCreator || isAdmin || isParticipant
+    const canManageParticipants = !task || isCreator || isAdmin
 
     useEffect(() => {
         if (currentOrg && isOpen) {
@@ -63,7 +72,9 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
             setDescription(task.description || '')
             setSelectedListId(task.list_id || 'none')
             setPriority(task.priority || 'none')
-            setParticipants([]) // Not supporting edit participants yet for MVP
+            // Load existing participants
+            const existingIds = task.participants?.map(p => p.user?.id).filter(Boolean) || []
+            setParticipants(existingIds)
         } else {
             setTitle('')
             setDescription('')
@@ -101,13 +112,14 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                                 onChange={(e) => setTitle(e.target.value)}
                                 placeholder="Ex: Comprar mantimentos"
                                 className="text-lg font-semibold"
+                                disabled={!canEdit}
                             />
                         </div>
 
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Pasta</label>
                             <Select value={selectedListId} onValueChange={setSelectedListId}>
-                                <SelectTrigger>
+                                <SelectTrigger disabled={!canEdit}>
                                     <SelectValue placeholder="Selecione uma pasta" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -123,7 +135,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Prioridade</label>
                             <Select value={priority} onValueChange={setPriority}>
-                                <SelectTrigger>
+                                <SelectTrigger disabled={!canEdit}>
                                     <SelectValue placeholder="Selecione a prioridade" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -135,28 +147,30 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                         </div>
                     </div>
 
-                    {/* Participants Section (Only New Tasks in Organization) */}
-                    {!task && showParticipants && (
-                        <div className="space-y-2 md:col-span-4 border-t pt-4">
-                            <label className="text-sm font-medium block">Participantes</label>
-                            <div className="flex flex-wrap gap-2">
-                                {availableMembers.map(member => {
-                                    const isSelected = participants.includes(member.id)
-                                    return (
-                                        <button
-                                            key={member.id}
-                                            onClick={() => toggleParticipant(member.id)}
-                                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs border transition-colors ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
-                                        >
-                                            <span>{member.label}</span>
-                                            {isSelected && <Check className="h-3 w-3" />}
-                                        </button>
-                                    )
-                                })}
-                                {availableMembers.length === 0 && <span className="text-muted-foreground text-xs">Nenhum outro membro encontrado.</span>}
+                    {/* Participants Section (New Tasks OR Edit with Permissions) */}
+                    {showParticipants && (
+                        canManageParticipants
+                    ) && (
+                            <div className="space-y-2 md:col-span-4 border-t pt-4">
+                                <label className="text-sm font-medium block">Participantes</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {availableMembers.map(member => {
+                                        const isSelected = participants.includes(member.id)
+                                        return (
+                                            <button
+                                                key={member.id}
+                                                onClick={() => toggleParticipant(member.id)}
+                                                className={`flex items-center space-x-2 px-3 py-1.5 rounded-full text-xs border transition-colors ${isSelected ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-muted'}`}
+                                            >
+                                                <span>{member.label}</span>
+                                                {isSelected && <Check className="h-3 w-3" />}
+                                            </button>
+                                        )
+                                    })}
+                                    {availableMembers.length === 0 && <span className="text-muted-foreground text-xs">Nenhum outro membro encontrado.</span>}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
 
                     <div className="space-y-2 flex-1 flex flex-col min-h-0">
                         <label className="text-sm font-medium">Descrição</label>
@@ -165,6 +179,7 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                                 <RichTextEditor
                                     content={description}
                                     onChange={setDescription}
+                                    readOnly={!canEdit}
                                 />
                             </div>
                         </div>
@@ -172,8 +187,8 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>Cancelar</Button>
-                    <Button onClick={handleSave}>Salvar</Button>
+                    <Button variant="outline" onClick={onClose}>{canEdit ? 'Cancelar' : 'Fechar'}</Button>
+                    {canEdit && <Button onClick={handleSave}>Salvar</Button>}
                 </DialogFooter>
             </DialogContent>
         </Dialog >

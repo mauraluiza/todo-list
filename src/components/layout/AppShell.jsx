@@ -3,6 +3,7 @@ import { Sidebar } from "./Sidebar"
 import { useTodos } from "../../hooks/useTodos"
 import { useLists } from "../../hooks/useLists"
 import { useOrganization } from "../../contexts/OrganizationProvider"
+import { useAuth } from "../../contexts/AuthProvider"
 import { Button } from "../ui/button"
 import { Check, Trash2, Plus, Info, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
@@ -20,6 +21,7 @@ export default function AppShell({ children }) {
     const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo, addParticipant, removeParticipant } = useTodos(effectiveStatusFilter, view)
     const { lists } = useLists()
     const { currentOrg } = useOrganization()
+    const { user } = useAuth()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingTask, setEditingTask] = useState(null)
 
@@ -52,7 +54,23 @@ export default function AppShell({ children }) {
 
     const handleUpdateTask = async (taskData) => {
         if (editingTask) {
-            await updateTodo(editingTask.id, taskData)
+            const { participants: newParticipants, ...todoPayload } = taskData
+            await updateTodo(editingTask.id, todoPayload)
+
+            // Sync Participants (if provided/changed)
+            if (newParticipants) {
+                const oldIds = editingTask.participants?.map(p => p.user?.id).filter(Boolean) || []
+
+                const toAdd = newParticipants.filter(id => !oldIds.includes(id))
+                const toRemove = oldIds.filter(id => !newParticipants.includes(id))
+
+                if (toAdd.length > 0 || toRemove.length > 0) {
+                    await Promise.all([
+                        ...toAdd.map(uid => addParticipant(editingTask.id, uid)),
+                        ...toRemove.map(uid => removeParticipant(editingTask.id, uid))
+                    ])
+                }
+            }
         }
     }
 
@@ -169,6 +187,12 @@ export default function AppShell({ children }) {
                                     if (daysRemaining < 0) daysRemaining = 0
                                 }
 
+                                const isCreator = todo.user_id === user?.id
+                                const isAdmin = currentOrg?.role === 'admin' || currentOrg?.role === 'owner'
+                                const isParticipant = todo.participants?.some(p => p.user?.id === user?.id)
+                                const canEdit = !currentOrg || isCreator || isAdmin || isParticipant
+                                const canDelete = !currentOrg || isCreator || isAdmin
+
                                 return (
                                     <div
                                         key={todo.id}
@@ -265,17 +289,19 @@ export default function AppShell({ children }) {
                                                     </Button>
                                                 </>
                                             ) : (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 z-10"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        deleteTodo(todo.id)
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
+                                                canDelete && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10 z-10"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            deleteTodo(todo.id)
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                )
                                             )}
                                         </div>
                                     </div>
