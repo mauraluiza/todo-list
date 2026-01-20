@@ -8,6 +8,7 @@ import { Button } from "../ui/button"
 import { Check, Trash2, Plus, Info, RefreshCcw } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select"
 import TaskModal from "../features/TaskModal"
+import AiChat from "../AiChat"
 
 export default function AppShell({ children }) {
     const [view, setView] = useState("all")
@@ -319,6 +320,8 @@ export default function AppShell({ children }) {
                 onSave={editingTask ? handleUpdateTask : handleCreateTask}
                 lists={lists}
             />
+            {/* AI Chat Widget */}
+            <AiChat />
         </div>
     )
 }

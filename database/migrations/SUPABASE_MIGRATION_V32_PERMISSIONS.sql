@@ -4,7 +4,7 @@
 -- 2. Secure INSERT/DELETE on todo_participants (Manage participants).
 
 -- Helper: Get Todo Details securely to avoid RLS recursion
-CREATE OR REPLACE FUNCTION get_todo_security_info(_todo_id BIGINT)
+CREATE OR REPLACE FUNCTION get_todo_security_info(_todo_id UUID)
 RETURNS TABLE (t_owner_id UUID, t_org_id UUID)
 LANGUAGE plpgsql
 SECURITY DEFINER

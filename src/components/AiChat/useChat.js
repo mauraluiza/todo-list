@@ -1,0 +1,79 @@
+import { useState, useCallback } from 'react'
+
+export const useChat = () => {
+    const [messages, setMessages] = useState([
+        { id: '1', role: 'assistant', content: 'Olá! Sou seu assistente virtual. Como posso ajudar com suas tarefas hoje?' }
+    ])
+    const [isLoading, setIsLoading] = useState(false)
+    const [isOpen, setIsOpen] = useState(false)
+
+    const toggleChat = () => setIsOpen(prev => !prev)
+
+    // Function: Send Message to AI
+    const sendMessage = useCallback(async (content) => {
+        if (!content.trim()) return
+
+        // 1. Add User Message Locally
+        const userMsg = {
+            id: Date.now().toString(),
+            role: 'user',
+            content
+        }
+
+        // We use functional update to be safe, but for the API payload we need the current list.
+        // Since 'messages' is in dependency, we can use it.
+        const newHistory = [...messages, { role: 'user', content }]
+
+        setMessages(prev => [...prev, userMsg])
+        setIsLoading(true)
+
+        try {
+            // 2. Call the Backend API
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    messages: newHistory.map(m => ({ role: m.role, content: m.content }))
+                })
+            })
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`)
+            }
+
+            const data = await response.json()
+
+            // 3. Add AI Response
+            if (data.reply) {
+                const aiMsg = {
+                    id: (Date.now() + 1).toString(),
+                    role: 'assistant',
+                    content: data.reply
+                }
+                setMessages(prev => [...prev, aiMsg])
+            }
+
+        } catch (error) {
+            console.error('Chat Error:', error)
+            const errorMsg = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: 'Desculpe, não consegui conectar ao servidor de IA. Verifique se o servidor backend está rodando.'
+            }
+            setMessages(prev => [...prev, errorMsg])
+        } finally {
+            setIsLoading(false)
+        }
+
+    }, [messages])
+
+    return {
+        messages,
+        sendMessage,
+        isLoading,
+        isOpen,
+        toggleChat
+    }
+}
