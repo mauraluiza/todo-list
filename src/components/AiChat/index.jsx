@@ -2,8 +2,8 @@ import { useChat } from './useChat'
 import ChatButton from './ChatButton'
 import ChatWindow from './ChatWindow'
 
-export default function AiChat() {
-    const { messages, sendMessage, isLoading, isOpen, toggleChat } = useChat()
+export default function AiChat({ todos, userToken, onTasksChanged }) {
+    const { messages, sendMessage, isLoading, isOpen, toggleChat } = useChat(todos, userToken, onTasksChanged)
 
     return (
         <>

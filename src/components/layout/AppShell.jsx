@@ -19,10 +19,10 @@ export default function AppShell({ children }) {
     const effectiveStatusFilter = isTrashView ? 'trash' : (statusFilter === 'completed' ? 'completed' : 'pending')
 
     // Pass statusFilter to hook to handle data fetching/subscription
-    const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo, addParticipant, removeParticipant } = useTodos(effectiveStatusFilter, view)
+    const { todos, loading, addTodo, updateTodo, deleteTodo, restoreTodo, permDeleteTodo, addParticipant, removeParticipant, refresh } = useTodos(effectiveStatusFilter, view)
     const { lists } = useLists()
     const { currentOrg } = useOrganization()
-    const { user } = useAuth()
+    const { user, session } = useAuth()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [editingTask, setEditingTask] = useState(null)
 
@@ -321,7 +321,11 @@ export default function AppShell({ children }) {
                 lists={lists}
             />
             {/* AI Chat Widget */}
-            <AiChat />
+            <AiChat
+                todos={filteredTodos}
+                userToken={session?.access_token}
+                onTasksChanged={refresh}
+            />
         </div>
     )
 }

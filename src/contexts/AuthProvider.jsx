@@ -5,11 +5,13 @@ const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
+    const [session, setSession] = useState(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         // 1. Initial Session Check
         supabase.auth.getSession().then(({ data: { session } }) => {
+            setSession(session)
             setUser(session?.user ?? null)
             setLoading(false)
         }).catch(err => {
@@ -19,8 +21,7 @@ export function AuthProvider({ children }) {
 
         // 2. Subscription
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null)
-            setLoading(false)
+            setSession(session)
             setUser(session?.user ?? null)
             setLoading(false)
         })
@@ -56,7 +57,7 @@ export function AuthProvider({ children }) {
     const signOut = () => supabase.auth.signOut()
 
     return (
-        <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+        <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
             {children}
         </AuthContext.Provider>
     )

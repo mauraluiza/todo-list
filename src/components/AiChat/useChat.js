@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 
-export const useChat = () => {
+export const useChat = (todos = [], userToken = null, onTasksChanged = () => { }) => {
     const [messages, setMessages] = useState([
         { id: '1', role: 'assistant', content: 'Olá! Sou seu assistente virtual. Como posso ajudar com suas tarefas hoje?' }
     ])
@@ -27,6 +27,15 @@ export const useChat = () => {
         setMessages(prev => [...prev, userMsg])
         setIsLoading(true)
 
+        // Simplify tasks for context (save tokens)
+        const tasksContext = todos.map(t => ({
+            id: t.id,
+            title: t.title,
+            priority: t.priority,
+            status: t.status,
+            organization_id: t.organization_id // Required for backend to infer List Scope (Personal vs Org)
+        }))
+
         try {
             // 2. Call the Backend API
             const response = await fetch('/api/chat', {
@@ -35,7 +44,9 @@ export const useChat = () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    messages: newHistory.map(m => ({ role: m.role, content: m.content }))
+                    messages: newHistory.map(m => ({ role: m.role, content: m.content })),
+                    tasks: tasksContext, // Use tasksContext (was simplified above)
+                    userToken
                 })
             })
 
@@ -53,8 +64,12 @@ export const useChat = () => {
                     content: data.reply
                 }
                 setMessages(prev => [...prev, aiMsg])
-            }
 
+                // Trigger Refresh if Action was Successful
+                if (data.success && onTasksChanged) {
+                    onTasksChanged()
+                }
+            }
         } catch (error) {
             console.error('Chat Error:', error)
             const errorMsg = {
@@ -67,7 +82,7 @@ export const useChat = () => {
             setIsLoading(false)
         }
 
-    }, [messages])
+    }, [messages, todos, userToken])
 
     return {
         messages,
