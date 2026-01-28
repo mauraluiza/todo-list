@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthProvider'
 import { supabase } from '../../lib/supabase'
 import { Check } from 'lucide-react'
 
-export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] }) {
+export default function TaskModal({ isOpen, onClose, task, onSave, lists = [], defaultListId = 'none' }) {
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [selectedListId, setSelectedListId] = useState('none')
@@ -78,11 +78,12 @@ export default function TaskModal({ isOpen, onClose, task, onSave, lists = [] })
         } else {
             setTitle('')
             setDescription('')
-            setSelectedListId('none')
+            // Use defaultListId ONLY if it's a valid list ID (not 'all' or 'trash' which are handled by parent passing valid ID or undefined)
+            setSelectedListId(defaultListId || 'none')
             setPriority('none')
             setParticipants([])
         }
-    }, [task, isOpen])
+    }, [task, isOpen, defaultListId])
 
     const handleSave = () => {
         if (!title.trim()) return

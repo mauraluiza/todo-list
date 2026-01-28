@@ -40,7 +40,8 @@ export default function AppShell({ children }) {
     }, [todos, priorityFilter])
 
     const handleCreateTask = async (taskData) => {
-        if (view !== 'all' && view !== 'trash') {
+        // Only enforce view as listId if not already specified by the modal (user choice)
+        if ((view !== 'all' && view !== 'trash') && !taskData.listId) {
             taskData.listId = view
         }
 
@@ -319,6 +320,7 @@ export default function AppShell({ children }) {
                 task={editingTask}
                 onSave={editingTask ? handleUpdateTask : handleCreateTask}
                 lists={lists}
+                defaultListId={view !== 'all' && view !== 'trash' ? view : undefined}
             />
             {/* AI Chat Widget */}
             <AiChat

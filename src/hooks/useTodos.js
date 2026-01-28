@@ -36,10 +36,19 @@ export function useTodos(statusFilter = 'all', listId = null) {
                 query = query.is('organization_id', null).eq('user_id', user.id)
             }
 
-            // List Filter Logic (If Lists feature is migrated later, keeping simple for now)
-            // if (listId && listId !== 'all') { query = query.eq('list_id', listId) }
+            // List Filter Logic
+            if (listId && listId !== 'all' && listId !== 'trash') {
+                query = query.eq('list_id', listId)
+            } else if (listId === 'all') {
+                // If "All", show tasks with no list OR all tasks?
+                // Original requirement: "Todas" mostra tarefas sem pasta ou conforme regra original.
+                // Usually "All" means everything.
+                // But the user said: "tarefas sem pasta aparecem apenas em 'Todas'" which implies folders are exclusive views.
+                // Let's assume 'all' shows everything for now unless user specified they want 'inbox' behavior.
+                // Re-reading: "tarefas sem pasta aparecem apenas em 'Todas'". This sounds like 'Todas' might act as 'Inbox' OR Aggragator.
+                // Let's stick to standard behavior: if listId is specific, filter by it.
+            }
 
-            // Status Filter Logic
             // Status Filter Logic
             if (statusFilter === 'trash') {
                 // TRASH VIEW: Only deleted items
@@ -63,7 +72,7 @@ export function useTodos(statusFilter = 'all', listId = null) {
             console.log('SUPABASE FETCH SUCCESS:', {
                 count: data.length,
                 sample: data[0],
-                filter: { statusFilter, org: currentOrg?.id }
+                filter: { statusFilter, org: currentOrg?.id, listId }
             })
 
             // Client-side sorting (Priority)
@@ -83,16 +92,20 @@ export function useTodos(statusFilter = 'all', listId = null) {
         } finally {
             setLoading(false)
         }
-    }, [user, currentOrg, statusFilter]) // Removed listId dep until lists are reimplemented
+    }, [user, currentOrg, statusFilter, listId])
 
     useEffect(() => {
         fetchTodos()
     }, [fetchTodos])
 
-    const addTodo = async ({ title, description = '', priority = 'none' }) => {
+    const addTodo = async ({ title, description = '', priority = 'none', listId: inputListId = null }) => {
         if (!title.trim()) return
 
         const dbPriority = (priority === 'none' || !priority) ? null : priority
+
+        // Use the passed listId from the task form, OR falback to current view's listId if meaningful (but usually passed in payload)
+        // If argument is explicitly passed, use it.
+        const targetListId = inputListId || (listId !== 'all' && listId !== 'trash' ? listId : null)
 
         const payload = {
             title,
@@ -102,7 +115,7 @@ export function useTodos(statusFilter = 'all', listId = null) {
             user_id: user.id, // Creator
             organization_id: currentOrg ? currentOrg.id : null, // Environment
             owner_id: user.id, // REQUIRED by table constraint
-            // list_id: listId
+            list_id: targetListId
         }
 
         console.log('ATTEMPTING INSERT:', payload)

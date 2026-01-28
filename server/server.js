@@ -12,6 +12,12 @@ const port = 3000
 app.use(cors())
 app.use(express.json())
 
+// Debug Middleware
+app.use((req, res, next) => {
+    console.log(`[Request] ${req.method} ${req.url}`)
+    next()
+})
+
 // Configs
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 if (!OPENAI_API_KEY) console.warn('WARNING: OPENAI_API_KEY is missing.')
@@ -24,8 +30,8 @@ const userRateLimit = new Map()
 // Supabase Setup helper
 const getSupabase = (token) => {
     return createClient(
-        process.env.VITE_SUPABASE_URL,
-        process.env.VITE_SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY,
+        process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+        process.env.VITE_SUPABASE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY,
         {
             global: {
                 headers: {
@@ -149,16 +155,25 @@ async function agentActionHandler(actionPayload, userToken, contextTasks) {
 
             // 3. Move Tasks
             if (folder.task_ids && folder.task_ids.length > 0) {
-                const { error: moveError } = await supabase
+                console.log(`[ActionHandler] Moving ${folder.task_ids.length} tasks to list '${folder.name}' (ID: ${listId})`)
+
+                const { data: movedTasks, error: moveError } = await supabase
                     .from('todos')
                     .update({ list_id: listId })
                     .in('id', folder.task_ids)
+                    .select('id')
 
                 if (moveError) {
                     console.error(`[ActionHandler] Error moving tasks to ${folder.name}:`, moveError)
                     errors.push(`Erro ao mover tarefas para: ${folder.name}`)
                 } else {
-                    movedCount += folder.task_ids.length
+                    const actualMoved = movedTasks ? movedTasks.length : 0
+                    console.log(`[ActionHandler] Successfully moved ${actualMoved} tasks to '${folder.name}'`)
+                    movedCount += actualMoved
+
+                    if (actualMoved === 0 && folder.task_ids.length > 0) {
+                        console.warn(`[ActionHandler] WARNING: Requested to move ${folder.task_ids.length} tasks but 0 were updated. Check Task IDs or Permissions.`)
+                    }
                 }
             }
         }
@@ -167,9 +182,13 @@ async function agentActionHandler(actionPayload, userToken, contextTasks) {
             return { success: false, message: "Houve erros ao organizar suas tarefas." }
         }
 
+        if (movedCount === 0 && createdLists === 0) {
+            return { success: true, message: "Analisei suas tarefas, mas todas já parecem organizadas ou não encontrei nada para mover." }
+        }
+
         return {
             success: true,
-            message: `Organizado! Criei ${createdLists} pastas e movi ${movedCount} tarefas.`
+            message: `Organizado! Criei ${createdLists} pastas e movi ${movedCount} tarefas para elas.`
         }
     }
 
